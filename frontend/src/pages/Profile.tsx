@@ -7,9 +7,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '../components/Toast';
+import { useNavigate } from 'react-router-dom';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 export default function Profile() {
   const { profile, signOut, setProfile, loadProfile } = useAuthStore();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     completed: 0,
     active: 0,
@@ -23,6 +26,7 @@ export default function Profile() {
     zone: ''
   });
   const [saving, setSaving] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   useEffect(() => {
     if (profile?.id) {
@@ -98,9 +102,12 @@ export default function Profile() {
     }
   };
 
-  const handleSignOut = () => {
-    if (window.confirm('هل أنت متأكد أنك تريد تسجيل الخروج؟')) {
-      signOut();
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (err) {
+      toast('❌ فشل تسجيل الخروج', 'error');
     }
   };
 
@@ -270,17 +277,52 @@ export default function Profile() {
           </AnimatePresence>
         </motion.div>
 
-        {/* Root Actions */}
+        {/* Admin System Management - Consolidated to keep nav at 5 items */}
+        {profile?.role === 'admin' && (
+          <motion.div 
+            className="card"
+            style={{ 
+               gridColumn: 'span 12', padding: '1.5rem', marginTop: '1rem',
+               background: 'linear-gradient(135deg, var(--primary-light) 0%, #edfcf5 100%)', 
+               border: '1px solid var(--primary-border)', display: 'flex', 
+               justifyContent: 'space-between', alignItems: 'center',
+               borderRadius: '24px'
+            }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                 <Shield size={20} /> لوحة تحكم المنظومة
+              </h3>
+              <p style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '0.25rem' }}>إعدادات الحسابات، قواعد التوزيع، والخيارات التقنية المتقدمة.</p>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => navigate('/admin/settings')}>
+              إدارة الإعدادات
+            </button>
+          </motion.div>
+        )}
+
         <div style={{ gridColumn: 'span 12', marginTop: '1rem' }}>
           <button 
             className="btn btn-outline btn-full"
             style={{ color: '#ef4444', borderColor: '#fee2e2', background: '#fff5f5' }}
-            onClick={handleSignOut}
+            onClick={() => setIsLogoutModalOpen(true)}
           >
             <LogOut size={18} />
             تسجيل الخروج من النظام
           </button>
         </div>
+
+        <ConfirmModal 
+          isOpen={isLogoutModalOpen}
+          onClose={() => setIsLogoutModalOpen(false)}
+          onConfirm={handleSignOut}
+          title="تسجيل الخروج؟"
+          message="هل أنت متأكد أنك تريد مغادرة النظام حالياً؟"
+          type="danger"
+        />
       </div>
     </div>
   );

@@ -1,13 +1,12 @@
 import { motion } from 'framer-motion';
-import { Phone, MapPin, Lock, Users, Star, ChevronLeft } from 'lucide-react';
 import type { CaseAssignment, CaseLock } from '../types';
-import { SOCIAL_STATUS_LABELS, getPriorityLevel } from '../types';
+import { getPriorityLevel } from '../types';
 
 interface FamilyCardProps {
   assignment: CaseAssignment;
   lock?: CaseLock | null;
   currentUserId?: string;
-  onAction?: (action: 'no_answer' | 'unreachable' | 'completed' | 'view', assignmentId: string) => void;
+  onAction?: (action: 'no_answer' | 'unreachable' | 'completed' | 'view' | 'claim', assignmentId: string) => void;
   showQuickActions?: boolean;
   index?: number;
 }
@@ -17,31 +16,38 @@ export default function FamilyCard({
   lock,
   currentUserId,
   onAction,
-  showQuickActions = true,
   index = 0,
 }: FamilyCardProps) {
   const { family } = assignment;
   if (!family) return null;
 
-  const isLockedByOther = lock && lock.locked_by !== currentUserId;
-  const isLockedByMe    = lock && lock.locked_by === currentUserId;
-  const priority        = getPriorityLevel(family.priority_score);
-
-  const handleAction = (action: Parameters<NonNullable<typeof onAction>>[0]) => {
+  const isAssigned       = !!assignment.volunteer_id;
+  const isAssignedToMe   = assignment.volunteer_id === currentUserId;
+  const isAssignedToOther = isAssigned && !isAssignedToMe;
+  const isLockedByOther   = !!lock && lock.locked_by !== currentUserId;
+  
+  const priority = getPriorityLevel(family.priority_score);
+  
+  const handleAction = (e: React.MouseEvent, action: Parameters<NonNullable<typeof onAction>>[0]) => {
+    e.stopPropagation();
     onAction?.(action, assignment.id);
   };
 
   const statusClass = assignment.status === 'completed' ? 'status-done' 
-    : isLockedByOther ? 'status-locked' 
-    : 'status-pending';
+    : (isAssignedToOther || isLockedByOther) ? 'status-locked' 
+    : isAssignedToMe ? 'status-mine'
+    : 'status-available';
 
   const badgeClass = assignment.status === 'completed' ? 'badge-done'
-    : isLockedByOther ? 'badge-locked'
-    : 'badge-pending';
+    : (isAssignedToOther || isLockedByOther) ? 'badge-locked'
+    : isAssignedToMe ? 'badge-mine'
+    : 'badge-available';
 
   const statusLabel = assignment.status === 'completed' ? 'تم التحويل ✅'
-    : isLockedByOther ? `قيد العمل 🔒`
-    : 'لم تُحوَّل ⏳';
+    : isLockedByOther ? `جارٍ العرض الآن 👁️‍🗨️`
+    : isAssignedToOther ? `قيد التنفيذ 🔒`
+    : isAssignedToMe ? 'موكلة إليك ⭐️'
+    : 'متاحة للحجز 📥';
 
   // Calculate total amount (base + commission)
   // Since we don't have the exact campaign logic here yet, we'll use a placeholder or derived value
@@ -54,7 +60,7 @@ export default function FamilyCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      onClick={() => handleAction('view')}
+      onClick={() => onAction?.('view', assignment.id)}
     >
       <div className="mc-top">
         <div className="mc-info">
@@ -64,7 +70,7 @@ export default function FamilyCard({
             <span>{family.phone || 'بدون هاتف'}</span>
           </div>
         </div>
-        <div className={`status-badge ${badgeClass}`}>
+        <div className={`status-badge ${badgeClass} ${priority.css}`}>
           {statusLabel}
         </div>
       </div>
@@ -82,15 +88,26 @@ export default function FamilyCard({
         </div>
       </div>
 
-      {isLockedByOther && (
+      {(isAssignedToOther || isLockedByOther) && (
         <div className="mc-by-line">
-          🔒 تعمل عليها الآن: <b>{lock?.locked_by_name}</b>
+          🔒 قيد {isLockedByOther ? 'المراجعة' : 'التنفيذ'} بواسطة: <b>{lock?.locked_by_name || assignment.volunteer?.full_name || 'زميل آخر'}</b>
         </div>
       )}
       
-      {isLockedByMe && !assignment.status.includes('completed') && (
-        <div className="mc-by-line" style={{ color: 'var(--green)', borderTopColor: 'var(--green-mid)' }}>
-          ⭐️ أنتِ تعملين على هذا الملف الآن
+      {isAssignedToMe && !assignment.status.includes('completed') && (
+        <div className="mc-by-line" style={{ color: 'var(--green)', borderTopColor: 'rgba(0,0,0,0.05)', background: 'rgba(34, 197, 94, 0.05)' }}>
+          ⭐️ هذه الحالة ضمن قائمة مهامك الحالية
+        </div>
+      )}
+
+      {!isAssigned && (
+        <div style={{ padding: '0.75rem', borderTop: '1px dashed var(--border)', marginTop: '0.5rem' }}>
+          <button 
+            className="btn btn-primary btn-sm w-full"
+            onClick={(e) => handleAction(e, 'claim')}
+          >
+            📥 احجز هذه الحالة لى
+          </button>
         </div>
       )}
     </motion.div>

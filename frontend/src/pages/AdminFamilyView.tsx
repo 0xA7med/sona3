@@ -7,7 +7,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
 import { 
-  SOCIAL_STATUS_LABELS, SCHOOL_STAGE_LABELS, getPriorityLevel,
+  SOCIAL_STATUS_LABELS, SCHOOL_STAGE_LABELS, getPriorityLevel, calcPriorityScore,
   type Family, type CaseHistoryEvent
 } from '../types';
 
@@ -43,7 +43,15 @@ export default function AdminFamilyView() {
   if (loading) return <div className="page-content"><div className="skeleton" style={{ height: 600 }} /></div>;
   if (!family) return null;
 
-  const priority = getPriorityLevel(family.priority_score);
+  const liveScore = calcPriorityScore({
+    social_status: family.social_status,
+    has_chronic_illness: family.has_chronic_illness,
+    is_disabled: family.is_disabled,
+    children_count: family.children?.length || 0,
+    vulnerability_score: family.children?.filter(c => c.is_orphan).length ? family.children.filter(c => c.is_orphan).length * 10 : 0
+  });
+
+  const priority = getPriorityLevel(liveScore);
 
   return (
     <div className="page-content">
@@ -135,8 +143,8 @@ export default function AdminFamilyView() {
         <aside>
           {/* Priority Score Card */}
           <div className="glass-card mb-6" style={{ textAlign: 'center' }}>
-            <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '1rem' }}>أولوية الحالة</h3>
-            <div style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--primary)', lineHeight: 1 }}>{family.priority_score}</div>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '1rem' }}>أولوية الحالة (نقاط)</h3>
+            <div style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--primary)', lineHeight: 1 }}>{liveScore}</div>
             <div className={`badge badge-lg mt-sm ${priority.css}`} style={{ display: 'inline-flex' }}>{priority.label}</div>
           </div>
 

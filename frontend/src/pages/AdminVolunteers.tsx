@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, UserCheck, UserX, Mail, Phone, Calendar } from 'lucide-react';
+import { Search, Phone, Eye, DollarSign } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '../components/Toast';
 import type { Profile } from '../types';
 
@@ -9,42 +10,57 @@ export default function AdminVolunteers() {
   const [volunteers, setVolunteers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchVolunteers();
   }, []);
 
   async function fetchVolunteers() {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1. Fetch Profiles
+      const { data: profs, error: pErr } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'volunteer')
         .order('full_name');
+      if (pErr) throw pErr;
 
-      if (error) throw error;
-      setVolunteers(data || []);
+      // 2. Fetch all related financial data in parallel
+      const [txRes, transRes] = await Promise.all([
+        supabase.from('transactions').select('volunteer_id, total_amount, amount'),
+        supabase.from('volunteer_fund_transfers').select('receiver_id, amount')
+      ]);
+
+      if (txRes.error) throw txRes.error;
+      if (transRes.error) throw transRes.error;
+
+      // 3. Map financial data to profiles
+      const txMap = (txRes.data || []).reduce((acc: any, t) => {
+        acc[t.volunteer_id] = (acc[t.volunteer_id] || 0) + (t.total_amount || t.amount || 0);
+        return acc;
+      }, {});
+
+      const transMap = (transRes.data || []).reduce((acc: any, t) => {
+        acc[t.receiver_id] = (acc[t.receiver_id] || 0) + (t.amount || 0);
+        return acc;
+      }, {});
+
+      const enriched = (profs || []).map(p => ({
+        ...p,
+        volunteer_fund_transfers: [{ amount: transMap[p.id] || 0 }],
+        transactions: [{ total_amount: txMap[p.id] || 0 }]
+      }));
+
+      setVolunteers(enriched as Profile[]);
     } catch (err) {
-      toast('حدث خطأ في تحميل المتطوعين', 'error');
+      console.error('List fetch error:', err);
+      toast('حدث خطأ في تحميل قائمة المتطوعين', 'error');
     } finally {
       setLoading(false);
     }
   }
-
-  const toggleStatus = async (id: string, current: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: !current })
-        .eq('id', id);
-
-      if (error) throw error;
-      setVolunteers(prev => prev.map(v => v.id === id ? { ...v, is_active: !current } : v));
-      toast(`تم ${!current ? 'تفعيل' : 'تعطيل'} الحساب بنجاح`, 'success');
-    } catch (err) {
-      toast('حدث خطأ أثناء التحديث', 'error');
-    }
-  };
 
   const filtered = volunteers.filter(v => 
     v.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -96,19 +112,27 @@ export default function AdminVolunteers() {
                   <h3 style={{ fontWeight: 800 }}>{v.full_name}</h3>
                   <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.2rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Phone size={14} /> {v.phone || 'غير متاح'}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Calendar size={14} /> انضم في {new Date(v.created_at).toLocaleDateString('ar-EG')}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                       <DollarSign size={14} color="var(--primary)" /> 
+                       <b>
+                         {(() => {
+                           const transfers = (v as any).volunteer_fund_transfers?.reduce((acc: number, t: any) => acc + (t.amount || 0), 0) || 0;
+                           const spent = (v as any).transactions?.reduce((acc: number, t: any) => acc + (t.total_amount || t.amount || 0), 0) || 0;
+                           return transfers - spent;
+                         })()} 
+                         ج.م
+                       </b>
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button 
-                  className={`btn btn-sm ${v.is_active ? 'btn-ghost' : 'btn-primary'}`}
-                  style={{ color: v.is_active ? 'var(--error)' : 'white' }}
-                  onClick={() => toggleStatus(v.id, v.is_active)}
+                  className="btn btn-primary btn-sm"
+                  onClick={() => navigate(`/admin/volunteers/${v.id}`)}
                 >
-                  {v.is_active ? <UserX size={18} /> : <UserCheck size={18} />}
-                  {v.is_active ? 'تعطيل الحساب' : 'تفعيل الحساب'}
+                  <Eye size={18} /> التفاصيل والتحكم
                 </button>
               </div>
             </motion.div>

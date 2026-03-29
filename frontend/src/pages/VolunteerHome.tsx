@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, RefreshCw, CheckCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
@@ -8,6 +8,7 @@ import FamilyCard from '../components/FamilyCard';
 import FamilyDetail from '../components/FamilyDetail';
 import type { CaseAssignment, CaseLock, AssignmentStatus } from '../types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useOfflineStore } from '../store/offlineStore';
 
 type FilterTab = 'all' | 'pending' | 'no_answer' | 'completed';
 
@@ -20,15 +21,26 @@ const TABS: { key: FilterTab; label: string; emoji: string }[] = [
 
 export default function VolunteerHome() {
   const { profile } = useAuthStore();
-  const [assignments, setAssignments] = useState<CaseAssignment[]>([]);
+  const { addToSyncQueue, myAssignments, setMyAssignments } = useOfflineStore();
+  const [globalAssignments, setGlobalAssignments] = useState<CaseAssignment[]>([]);
   const [locks,       setLocks]       = useState<Map<string, CaseLock>>(new Map());
   const [search,      setSearch]      = useState('');
   const [tab,         setTab]         = useState<FilterTab>('pending');
   const [loading,     setLoading]     = useState(true);
+  const [isOffline,   setIsOffline]   = useState(!navigator.onLine);
   const [activeCamp,  setActiveCamp]  = useState<any>(null);
   const [selectedAsgn, setSelectedAsgn] = useState<CaseAssignment | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const myLocksRef = useRef<Set<string>>(new Set());
+  
+  useEffect(() => {
+    const updateOnline = () => setIsOffline(!navigator.onLine);
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    return () => {
+      window.removeEventListener('online', updateOnline);
+      window.removeEventListener('offline', updateOnline);
+    };
+  }, []);
 
   /* ── Fetch assignments ─────────────────────────────────── */
   const fetchCampaign = useCallback(async () => {
@@ -54,6 +66,7 @@ export default function VolunteerHome() {
     setLoading(true);
     try {
       await fetchCampaign(); // Load campaign first
+      
       const { data, error } = await supabase
         .from('case_assignments')
         .select(`
@@ -62,12 +75,12 @@ export default function VolunteerHome() {
             id, sequential_id, mother_name, national_id,
             phone, governorate, district, social_status,
             has_chronic_illness, is_disabled, priority_score,
-            status, notes,
-            children:children (id, is_orphan, school_stage)
-          )
+            status, notes, total_amount,
+            children:children (id, is_orphan, school_stage, child_name, age)
+          ),
+          volunteer:profiles(full_name),
+          campaign:campaigns(*)
         `)
-        .eq('volunteer_id', profile.id)
-        .neq('status', 'skipped')
         .order('status', { ascending: true });
 
       if (error) throw error;
@@ -79,14 +92,19 @@ export default function VolunteerHome() {
           : undefined,
       }));
 
-      setAssignments(enriched as CaseAssignment[]);
+      setGlobalAssignments(enriched as CaseAssignment[]);
+      
+      // Update persistent offline cache for "My Tasks"
+      const mine = (enriched as CaseAssignment[]).filter(a => a.volunteer_id === profile.id);
+      setMyAssignments(mine);
+
     } catch (err) {
       console.error(err);
-      toast('حدث خطأ في تحميل المهام', 'error');
+      toast('حدث خطأ في تحميل المهام، سيتم العرض من الذاكرة الحالية', 'warning');
     } finally {
       setLoading(false);
     }
-  }, [profile]);
+  }, [profile, fetchCampaign, setMyAssignments]);
 
   /* ── Fetch locks snapshot ──────────────────────────────── */
   const fetchLocks = useCallback(async () => {
@@ -133,41 +151,65 @@ export default function VolunteerHome() {
   /* ── Cleanup own locks on unmount ──────────────────────── */
   useEffect(() => {
     return () => {
-      myLocksRef.current.forEach(async (familyId) => {
-        await supabase.from('case_locks').delete().eq('family_id', familyId);
-      });
+      // In this version, we handle locks via timeouts or manual release on close
+      // Global assignment is the primary locking mechanism
     };
   }, []);
 
   /* ── Lock / unlock helpers ─────────────────────────────── */
   const lockCase = async (familyId: string) => {
-    if (!profile) return;
-    await supabase.from('case_locks').upsert({
-      family_id: familyId,
-      locked_by: profile.id,
-      locked_by_name: profile.full_name,
-      locked_at: new Date().toISOString(),
-    });
-    myLocksRef.current.add(familyId);
+    if (!profile || isOffline) return;
+    try {
+      await supabase.from('case_locks').upsert({
+        family_id: familyId,
+        locked_by: profile.id,
+        locked_by_name: profile.full_name,
+        locked_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error('Lock failed', e);
+    }
   };
 
   const unlockCase = async (familyId: string) => {
+    if (isOffline) return;
     await supabase.from('case_locks').delete().eq('family_id', familyId);
-    myLocksRef.current.delete(familyId);
   };
 
   /* ── Quick Action handler ──────────────────────────────── */
   const handleAction = async (
-    action: 'no_answer' | 'unreachable' | 'completed' | 'view',
+    action: 'no_answer' | 'unreachable' | 'completed' | 'view' | 'claim',
     assignmentId: string
   ) => {
-    const asgn = assignments.find(a => a.id === assignmentId);
+    if (!profile) return;
+
+    if (action === 'claim') {
+      if (isOffline) {
+        toast('المعذرة، يجب أن تتوفر إنترنت للقيام بالحجز لأول مرة', 'warning');
+        return;
+      }
+      try {
+        const { error } = await supabase.rpc('reserve_single_case', {
+           p_volunteer_id: profile.id,
+           p_family_id: globalAssignments.find(a => a.id === assignmentId)?.family_id,
+           p_campaign_id: activeCamp?.id
+        });
+        if (error) throw error;
+        toast('✅ تم حجز الحالة لك بنجاح', 'success');
+        fetchAssignments();
+      } catch (err) {
+        toast('❌ فشل الحجز، قد تكون محجوزة بالفعل', 'error');
+      }
+      return;
+    }
+
+    const asgn = globalAssignments.find(a => a.id === assignmentId) || myAssignments.find(a => a.id === assignmentId);
     if (!asgn || !asgn.family) return;
 
     const familyId = asgn.family_id;
 
     if (action === 'view') {
-      await lockCase(familyId);
+      if (!isOffline) lockCase(familyId);
       setSelectedAsgn(asgn);
       return;
     }
@@ -181,43 +223,54 @@ export default function VolunteerHome() {
     const newStatus = statusMap[action];
     if (!newStatus) return;
 
+    // Build the payload
+    const updatePayload = {
+      id: assignmentId,
+      status: newStatus,
+      ...(newStatus === 'completed' ? { completed_at: new Date().toISOString() } : {}),
+    };
+
+    // Build the history payload
+    const historyPayload = {
+      family_id: familyId,
+      user_id:   profile.id,
+      user_name: profile.full_name,
+      action_type: action === 'no_answer' ? 'CALLED_NO_ANSWER'
+                 : action === 'unreachable' ? 'UNREACHABLE'
+                 : 'TRANSFER_DONE',
+      description: action === 'no_answer'   ? 'جرس ولم يرد'
+                 : action === 'unreachable'  ? 'الرقم مغلق / تعذر التواصل'
+                 : 'تم التحويل بنجاح وإتمام المهمة من المتطوع',
+      campaign_id: asgn.campaign_id,
+    };
+
+    if (isOffline) {
+      // Add to offline sync queue
+      addToSyncQueue({ type: 'UPDATE_STATUS', payload: updatePayload });
+      addToSyncQueue({ type: 'LOG_TRANSFER', payload: historyPayload });
+      
+      // Update local state immediately for UX
+      const updated = (prev: CaseAssignment[]) => prev.map(a => a.id === assignmentId ? { ...a, status: newStatus as AssignmentStatus } : a);
+      setGlobalAssignments(updated);
+      setMyAssignments(updated(myAssignments));
+      
+      toast('💾 تم الحفظ محلياً - سيتم الرفع فور توفر نت', 'info');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('case_assignments')
-        .update({
-          status: newStatus,
-          ...(newStatus === 'completed' ? { completed_at: new Date().toISOString() } : {}),
-        })
+        .update(updatePayload)
         .eq('id', assignmentId);
 
       if (error) throw error;
 
-      // Log to case_history
-      await supabase.from('case_history').insert({
-        family_id: familyId,
-        user_id:   profile?.id,
-        user_name: profile?.full_name,
-        action_type: action === 'no_answer' ? 'CALLED_NO_ANSWER'
-                   : action === 'unreachable' ? 'UNREACHABLE'
-                   : 'CONTACTED',
-        description: action === 'no_answer'   ? 'جرس ولم يرد'
-                   : action === 'unreachable'  ? 'الرقم مغلق / تعذر التواصل'
-                   : 'تم التواصل بنجاح وإتمام المهمة',
-        campaign_id: asgn.campaign_id,
-      });
-
+      await supabase.from('case_history').insert(historyPayload);
       await unlockCase(familyId);
 
-      setAssignments(prev =>
-        prev.map(a => a.id === assignmentId ? { ...a, status: newStatus as AssignmentStatus } : a)
-      );
-
-      const messages = {
-        no_answer:   '📞 تم تسجيل "لم يرد"',
-        unreachable: '🚫 تم تسجيل "مغلق"',
-        completed:   '✅ أحسنت! تم إنجاز المهمة',
-      };
-      toast(messages[action as keyof typeof messages], action === 'completed' ? 'success' : 'warning');
+      fetchAssignments();
+      toast('✅ تم التزامن بنجاح', 'success');
 
     } catch (err) {
       console.error(err);
@@ -226,7 +279,9 @@ export default function VolunteerHome() {
   };
 
   /* ── Filter logic ──────────────────────────────────────── */
-  const filtered = assignments.filter((a) => {
+  const assignmentsToDisplay = isOffline ? myAssignments : globalAssignments;
+
+  const filtered = assignmentsToDisplay.filter((a) => {
     const matchTab = tab === 'all' ? true
       : tab === 'pending'   ? ['pending', 'in_progress'].includes(a.status)
       : a.status === tab;
@@ -242,13 +297,31 @@ export default function VolunteerHome() {
     return matchTab && matchSearch;
   });
 
-  // Sort by priority descending
-  const sorted = [...filtered].sort((a, b) =>
-    (b.family?.priority_score ?? 0) - (a.family?.priority_score ?? 0)
-  );
+  // Sort: My tasks first, then by priority
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.volunteer_id === profile?.id && b.volunteer_id !== profile?.id) return -1;
+    if (a.volunteer_id !== profile?.id && b.volunteer_id === profile?.id) return 1;
+    return (b.family?.priority_score ?? 0) - (a.family?.priority_score ?? 0)
+  });
 
-  const completedCount = assignments.filter(a => a.status === 'completed').length;
-  const pendingCount   = assignments.filter(a => ['pending', 'in_progress'].includes(a.status)).length;
+  const completedCount = assignmentsToDisplay.filter(a => a.status === 'completed').length;
+  const pendingCount   = assignmentsToDisplay.filter(a => ['pending', 'in_progress'].includes(a.status)).length;
+
+  const handleBatchReserve = async () => {
+    if (!profile || isOffline || !activeCamp) return;
+    try {
+       const { data, error } = await supabase.rpc('reserve_case_batch', {
+          p_volunteer_id: profile.id,
+          p_campaign_id: activeCamp.id,
+          p_limit: 10
+       });
+       if (error) throw error;
+       toast(`📦 تم حجز ${data?.length || 0} حالات جديدة لك بنجاح`, 'success');
+       fetchAssignments();
+    } catch (err) {
+      toast('❌ فشل حجز الدفعة، تأكد من توفر حالات شاغرة', 'error');
+    }
+  };
 
   return (
     <div className="screen active" style={{ display: 'block' }}>
@@ -269,16 +342,28 @@ export default function VolunteerHome() {
         >
           <div className="banner-icon-row">
             <div className="banner-icon-badge">
-              🎯 الأسر الموكلة إليك: {assignments.length}
+              {isOffline ? '📴 وضع الأوفلاين نشط' : `🎯 الحالات المتاحة: ${globalAssignments.length}`}
             </div>
-            <button
-              className="btn-ghost"
-              style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={fetchAssignments}
-              title="تحديث"
-            >
-              <RefreshCw size={14} />
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {!isOffline && (
+                <button 
+                  className="btn btn-sm" 
+                  style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800 }}
+                  onClick={handleBatchReserve}
+                >
+                  📦 حجز 10 حالات
+                </button>
+              )}
+              <button
+                className="btn-ghost"
+                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={fetchAssignments}
+                disabled={isOffline}
+                title="تحديث"
+              >
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              </button>
+            </div>
           </div>
           
           <div className="banner-title">
@@ -288,17 +373,17 @@ export default function VolunteerHome() {
           
           <div className="progress-wrap mt-md">
             <div className="progress-labels">
-              <span>نسبة الإنجاز</span>
-              <span>{assignments.length ? Math.round((completedCount / assignments.length) * 100) : 0}%</span>
+              <span>{isOffline ? 'المهام المحفوظة بجهازك' : 'نسبة الإنجاز'}</span>
+              <span>{assignmentsToDisplay.length ? Math.round((completedCount / assignmentsToDisplay.length) * 100) : 0}%</span>
             </div>
             <div className="progress-track">
               <div 
                 className="progress-fill" 
-                style={{ width: `${assignments.length ? (completedCount / assignments.length) * 100 : 0}%` }}
+                style={{ width: `${assignmentsToDisplay.length ? (completedCount / assignmentsToDisplay.length) * 100 : 0}%` }}
               ></div>
             </div>
             <div style={{ fontSize: '0.75rem', marginTop: '6px', opacity: 0.8 }}>
-              {completedCount} مكتملة من أصل {assignments.length}
+              {completedCount} مكتملة من أصل {assignmentsToDisplay.length}
             </div>
           </div>
         </motion.div>
@@ -320,9 +405,9 @@ export default function VolunteerHome() {
         {/* Filter Chips */}
         <div className="filter-bar mb-md" role="group" aria-label="فلترة القائمة">
           {TABS.map(t => {
-            const count = t.key === 'all' ? assignments.length
+            const count = t.key === 'all' ? assignmentsToDisplay.length
               : t.key === 'pending' ? pendingCount
-              : assignments.filter(a => a.status === t.key).length;
+              : assignmentsToDisplay.filter(a => a.status === t.key).length;
             return (
               <button
                 key={t.key}
@@ -393,8 +478,9 @@ export default function VolunteerHome() {
         <FamilyDetail
           isOpen={!!selectedAsgn}
           assignment={selectedAsgn}
+          currentUserId={profile?.id}
           onClose={async () => {
-             await unlockCase(selectedAsgn.family_id);
+             if (!isOffline) await unlockCase(selectedAsgn.family_id);
              setSelectedAsgn(null);
           }}
           onAction={(action) => handleAction(action, selectedAsgn.id)}

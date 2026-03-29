@@ -1,10 +1,12 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Users, Calendar, User, LogOut,
-  Heart, ChevronDown, Settings, History as HistoryIcon
+  Heart
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import ConfirmModal from './ui/ConfirmModal';
+import { useState } from 'react';
 
 interface NavItem {
   label: string;
@@ -14,14 +16,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'الرئيسية',  icon: <LayoutDashboard size={20} />, path: '/admin',           roles: ['admin'] },
-  { label: 'الأسر',     icon: <Users size={20} />,            path: '/admin/families',  roles: ['admin'] },
-  { label: 'السجل المالي', icon: <HistoryIcon size={20} />,       path: '/admin/transactions', roles: ['admin'] },
-  { label: 'الحملات',   icon: <Calendar size={20} />,         path: '/admin/campaigns', roles: ['admin'] },
-  { label: 'الإعدادات', icon: <Settings size={20} />,         path: '/admin/settings',  roles: ['admin'] },
-  { label: 'الرئيسية',  icon: <LayoutDashboard size={20} />, path: '/volunteer',       roles: ['volunteer'] },
-  { label: 'مهامي',     icon: <Heart size={20} />,           path: '/volunteer/tasks', roles: ['volunteer'] },
-  { label: 'حسابي',     icon: <User size={20} />,            path: '/profile',         roles: ['admin', 'volunteer'] },
+  { label: 'الرئيسية',     icon: <LayoutDashboard size={20} />, path: '/admin',           roles: ['admin'] },
+  { label: 'الأسر',        icon: <Users size={20} />,            path: '/admin/families',  roles: ['admin'] },
+  { label: 'الحملات',      icon: <Calendar size={20} />,         path: '/admin/campaigns', roles: ['admin'] },
+  { label: 'المتطوعين',    icon: <Users size={20} />,            path: '/admin/volunteers', roles: ['admin'] },
+  { label: 'حسابي',        icon: <User size={20} />,            path: '/profile',          roles: ['admin', 'volunteer'] },
+  { label: 'الرئيسية',     icon: <LayoutDashboard size={20} />, path: '/volunteer',       roles: ['volunteer'] },
+  { label: 'عملياتي',      icon: <Heart size={20} />,           path: '/volunteer/tasks',  roles: ['volunteer'] },
 ];
 
 export default function Navigation() {
@@ -29,6 +30,7 @@ export default function Navigation() {
   const location = useLocation();
   const { profile, signOut } = useAuthStore();
   const role = profile?.role || 'volunteer';
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 
   const items = NAV_ITEMS.filter(i => i.roles.includes(role));
   const isActive = (path: string) => {
@@ -38,9 +40,15 @@ export default function Navigation() {
     return location.pathname.startsWith(path);
   };
 
-  const handleSignOut = () => {
-    if (window.confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-      signOut();
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Logout error:', err);
+      // Force reset local state if API fails
+      useAuthStore.setState({ user: null, profile: null });
+      navigate('/login', { replace: true });
     }
   };
 
@@ -106,7 +114,7 @@ export default function Navigation() {
           </button>
           <button
             className="nav-link"
-            onClick={handleSignOut}
+            onClick={() => setIsLogoutOpen(true)}
             style={{ border: 'none', cursor: 'pointer', width: '100%', textAlign: 'right', fontFamily: 'inherit', color: 'rgba(239,68,68,0.8)' }}
           >
             <LogOut size={18} />
@@ -137,6 +145,16 @@ export default function Navigation() {
           );
         })}
       </nav>
+
+      <ConfirmModal 
+        isOpen={isLogoutOpen}
+        onClose={() => setIsLogoutOpen(false)}
+        onConfirm={handleSignOut}
+        title="تسجيل الخروج؟"
+        message="هل أنت متأكد من رغبتك في الخروج من النظام حالياً؟"
+        confirmText="خروج"
+        type="danger"
+      />
     </>
   );
 }

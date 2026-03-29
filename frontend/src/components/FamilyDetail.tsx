@@ -1,10 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, MapPin, Users, X, Check, ArrowRight, ExternalLink } from 'lucide-react';
+import { Phone, Check, ArrowRight, Zap } from 'lucide-react';
 import type { CaseAssignment } from '../types';
+import { calculateDistribution } from '../lib/distributionService';
 
 interface FamilyDetailProps {
   assignment: CaseAssignment;
   isOpen: boolean;
+  currentUserId?: string;
   onClose: () => void;
   onAction: (action: 'no_answer' | 'unreachable' | 'completed') => void;
 }
@@ -12,15 +14,29 @@ interface FamilyDetailProps {
 export default function FamilyDetail({
   assignment,
   isOpen,
+  currentUserId,
   onClose,
   onAction
 }: FamilyDetailProps) {
-  const { family } = assignment;
-  if (!family) return null;
+  const { family, campaign } = assignment;
+  if (!family || !campaign) return null;
 
-  // Calculate total amount (base + commission)
-  const totalAmount = (family as any).total_amount || 0;
-  const commission = totalAmount > 500 ? 10 : 5;
+  const breakdown = calculateDistribution(family as any, campaign);
+  const totalAmount = breakdown.total;
+  const commission = breakdown.fee;
+  
+  const isMyAssignment = assignment.volunteer_id === currentUserId;
+
+  const handleCall = () => {
+    window.location.href = `tel:${family.phone}`;
+  };
+
+  const handleVodafoneTransfer = () => {
+    // USSD: *9*7*phone*amount#
+    // # needs to be encoded as %23 for tel: links
+    const ussd = `*9*7*${family.phone}*${totalAmount}%23`;
+    window.location.href = `tel:${ussd}`;
+  };
 
   return (
     <AnimatePresence>
@@ -80,31 +96,65 @@ export default function FamilyDetail({
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="action-row">
-                <button 
-                  className="btn btn-ghost" 
-                  style={{ background: 'var(--white)', border: '1px solid var(--gray-200)' }}
-                  onClick={() => onAction('no_answer')}
-                >
-                  📞 لم يرد
-                </button>
-                <button 
-                  className="btn btn-ghost"
-                  style={{ background: 'var(--white)', border: '1px solid var(--gray-200)' }}
-                  onClick={() => onAction('unreachable')}
-                >
-                  🚫 مغلق
-                </button>
-              </div>
+              {/* Center Operations - Primary Actions */}
+              <div style={{ background: 'var(--white)', padding: '1.25rem', borderRadius: '20px', border: '1px solid var(--border)', marginBottom: '1.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>
+                  <Zap size={16} fill="var(--primary)" /> مركز العمليات السريع
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <button 
+                    className="btn" 
+                    onClick={handleCall}
+                    style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', display: 'flex', flexDirection: 'column', padding: '0.75rem', height: 'auto', gap: '0.25rem' }}
+                  >
+                    <Phone size={20} />
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>اتصال هاتفى</span>
+                  </button>
+                  
+                  <button 
+                    className="btn" 
+                    onClick={handleVodafoneTransfer}
+                    style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', display: 'flex', flexDirection: 'column', padding: '0.75rem', height: 'auto', gap: '0.25rem' }}
+                  >
+                    <Zap size={20} />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>فودافون كاش</span>
+                  </button>
+                </div>
 
-              <button 
-                className="btn btn-primary mb-md"
-                onClick={() => onAction('completed')}
-                style={{ display: 'flex', gap: '8px' }}
-              >
-                <Check size={20} /> تم التحويل بنجاح
-              </button>
+                {isMyAssignment ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <button 
+                      className="btn btn-primary w-full"
+                      onClick={() => onAction('completed')}
+                      style={{ height: '52px', fontSize: '1rem', fontWeight: 800 }}
+                    >
+                      <Check size={20} /> تأكيد إتمام التحويل
+                    </button>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <button 
+                         className="btn btn-ghost" 
+                         style={{ fontSize: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0' }}
+                         onClick={() => onAction('no_answer')}
+                      >
+                         📞 لم يرد
+                      </button>
+                      <button 
+                         className="btn btn-ghost" 
+                         style={{ fontSize: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0' }}
+                         onClick={() => onAction('unreachable')}
+                      >
+                         🚫 تعذر الوصول
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '1rem', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '12px', color: '#92400e', fontSize: '0.85rem', fontWeight: 700 }}>
+                    🔒 هذه الحالة محجوزة لزميل آخر.<br/>يمكنك الاطلاع فقط.
+                  </div>
+                )}
+              </div>
 
               {/* Children List */}
               <div className="section-title mb-sm">👨‍👩‍👧 أفراد العائلة المستفيدون</div>

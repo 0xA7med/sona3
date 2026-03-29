@@ -186,10 +186,10 @@ export default function AdminHome() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
             {[
               { label: 'إضافة أسرة', icon: '🫂', path: '/admin/families/new', color: '#edfcf5' },
-              { label: 'إدارة المتطوعين', icon: '👥', path: '/admin/volunteers', color: '#eff6ff' },
+              { label: 'السجل المالي', icon: '📜', path: '/admin/transactions', color: '#eff6ff' },
               { label: 'محرك الاستهداف', icon: '🎯', path: '/admin/targeting', color: '#fffbeb' },
               { label: 'تقارير مالية', icon: '📊', path: '/admin/reports', color: '#faf5ff' },
-            ].map((m, i) => (
+            ].map((m) => (
               <motion.button
                 key={m.path}
                 className="card"

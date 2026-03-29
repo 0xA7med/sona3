@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { useAuthStore } from './store/authStore';
 import { ToastProvider } from './components/Toast';
+import { SyncManager } from './components/SyncManager';
 
 // Navigation
 import Navigation from './components/Navigation';
@@ -24,6 +25,7 @@ import AdminTransactions from './pages/AdminTransactions';
 import AdminSettings from './pages/AdminSettings';
 import Profile         from './pages/Profile';
 import VolunteerTasks  from './pages/VolunteerTasks';
+import AdminVolunteerLog from './pages/AdminVolunteerLog';
 
 function AppContent() {
   const { user, loading, profile } = useAuthStore();
@@ -88,6 +90,7 @@ function AppContent() {
           <Route path="/admin/campaigns/:id"   element={user && role === 'admin' ? <AdminCampaignView /> : <Navigate to="/login" />} />
           <Route path="/admin/campaigns/:id/edit" element={user && role === 'admin' ? <AdminCampaignForm /> : <Navigate to="/login" />} />
           <Route path="/admin/volunteers"      element={user && role === 'admin' ? <AdminVolunteers />   : <Navigate to="/login" />} />
+          <Route path="/admin/volunteers/:id"  element={user && role === 'admin' ? <AdminVolunteerLog /> : <Navigate to="/login" />} />
           <Route path="/admin/targeting"       element={user && role === 'admin' ? <AdminTargeting />  : <Navigate to="/login" />} />
           <Route path="/admin/transactions"    element={user && role === 'admin' ? <AdminTransactions /> : <Navigate to="/login" />} />
           <Route path="/admin/reports"         element={user && role === 'admin' ? <AdminReports />    : <Navigate to="/login" />} />
@@ -177,6 +180,7 @@ export default function App() {
 
   return (
     <Router>
+      <SyncManager />
       <AppContent />
       <ToastProvider />
     </Router>

@@ -1,5 +1,5 @@
 import type { 
-  Family, Campaign, Child, AgeBracket, CommissionRule, 
+  Family, Campaign, Child, CommissionRule, 
   SchoolStage 
 } from '../types';
 import { parseNationalID } from '../types';
@@ -8,11 +8,13 @@ export interface DistributionBreakdown {
   baseAmount: number;
   fee: number;
   total: number;
+  mode: 'age' | 'school_stage';
   childrenBreakdown: {
     childId: string;
     name: string;
     age: number;
     amount: number;
+    stageLabel?: string;
   }[];
 }
 
@@ -23,22 +25,34 @@ export function calculateDistribution(
   family: Family, 
   campaign: Campaign
 ): DistributionBreakdown {
-  // 1. If not auto-calculated, use the flat amount per family
-  if (!campaign.is_auto_calculate || !campaign.age_brackets?.length) {
+  if (!campaign.is_auto_calculate) {
     const amount = campaign.amount_per_family || 0;
     return {
       baseAmount: amount,
       fee: calculateCommission(amount, campaign.commission_rules),
       total: amount + calculateCommission(amount, campaign.commission_rules),
+      mode: 'age', // Default
       childrenBreakdown: []
     };
   }
+
+  const mode = campaign.distribution_mode || 'age';
 
   // 2. Calculate per child
   let baseAmount = 0;
   const childrenBreakdown = (family.children || []).map(child => {
     const age = getChildAge(child);
-    const amount = getAmountForAge(age, campaign.age_brackets);
+    let amount = 0;
+    
+    if (mode === 'school_stage') {
+      const stage = child.school_stage || detectSchoolStage(age);
+      const match = (campaign.stage_brackets || []).find(b => b.stage === stage);
+      amount = match ? match.amount : 0;
+    } else {
+      const match = (campaign.age_brackets || []).find(b => age >= b.from && age <= b.to);
+      amount = match ? match.amount : 0;
+    }
+
     baseAmount += amount;
     
     return {
@@ -55,6 +69,7 @@ export function calculateDistribution(
     baseAmount,
     fee,
     total: baseAmount + fee,
+    mode,
     childrenBreakdown
   };
 }
@@ -96,14 +111,6 @@ export function detectSchoolStage(age: number): SchoolStage {
   if (age < 18) return 'secondary';
   if (age < 23) return 'university';
   return 'graduated';
-}
-
-/**
- * Find amount in brackets
- */
-function getAmountForAge(age: number, brackets: AgeBracket[]): number {
-  const match = brackets.find(b => age >= b.from && age <= b.to);
-  return match ? match.amount : 0;
 }
 
 /**

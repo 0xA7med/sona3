@@ -12,6 +12,7 @@ export interface Profile {
   phone?: string;
   zone?: string;
   is_active: boolean;
+  status?: string;
   created_at: string;
 }
 
@@ -86,11 +87,18 @@ export interface TargetingRule {
   label?: string;
 }
 
+export type DistributionMode = 'age' | 'school_stage';
+
 export interface AgeBracket {
   from: number;
   to: number;
   amount: number;
   label?: string;
+}
+
+export interface StageBracket {
+  stage: SchoolStage;
+  amount: number;
 }
 
 export interface CommissionRule {
@@ -108,7 +116,9 @@ export interface Campaign {
   budget: number;
   amount_per_family: number;
   targeting_rules: TargetingRule[];
+  distribution_mode: DistributionMode;
   age_brackets: AgeBracket[];
+  stage_brackets: StageBracket[];
   commission_rules: CommissionRule[];
   is_auto_calculate: boolean;
   status: CampaignStatus;
@@ -159,9 +169,13 @@ export interface Transaction {
   amount: number;
   transaction_type: TransactionType;
   status: TransactionStatus;
+  base_amount?: number;
+  fee_amount?: number;
+  total_amount?: number;
   notes?: string;
   proof_url?: string;
   created_at: string;
+  family?: { mother_name: string };
 }
 
 /* ── Case History / Timeline ───────────────────────────────── */
@@ -183,9 +197,12 @@ export interface CaseHistoryEvent {
   user_name?: string;
   action_type: HistoryActionType;
   description?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
   campaign_id?: string;
   created_at: string;
+  // Joined
+  family?: { mother_name: string; district?: string };
+  campaign?: { name: string };
 }
 
 /* ── National ID Extraction Result ────────────────────────── */

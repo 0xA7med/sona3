@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, AlertCircle, Plus, Trash2, ArrowRight } from 'lucide-react';
@@ -240,7 +240,7 @@ export default function AdminFamilyForm() {
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">الرقم القومي (14 رقم)</label>
-              <NIDInput value={nationalId} onChange={handleNIDChange} />
+              <NIDInput value={nationalId || ''} onChange={handleNIDChange} />
             </div>
           </div>
 
@@ -253,7 +253,7 @@ export default function AdminFamilyForm() {
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">رقم الهاتف</label>
-              <input type="tel" className="form-input" dir="ltr" value={phone} onChange={e => setPhone(e.target.value)} />
+              <input type="tel" className="form-input" dir="ltr" value={phone || ''} onChange={e => setPhone(e.target.value)} />
             </div>
           </div>
 
@@ -261,11 +261,11 @@ export default function AdminFamilyForm() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginTop: '1.25rem', padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '12px' }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">اسم الزوج</label>
-                <input type="text" className="form-input" value={husbandName} onChange={e => setHusbandName(e.target.value)} />
+                <input type="text" className="form-input" value={husbandName || ''} onChange={e => setHusbandName(e.target.value)} />
               </div>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">الرقم القومي للزوج</label>
-                <input type="text" className="form-input" dir="ltr" maxLength={14} pattern="\d*" value={husbandNid} onChange={e => setHusbandNid(e.target.value.replace(/\D/g, ''))} />
+                <input type="text" className="form-input" dir="ltr" maxLength={14} pattern="\d*" value={husbandNid || ''} onChange={e => setHusbandNid(e.target.value.replace(/\D/g, ''))} />
               </div>
             </div>
           )}
@@ -281,15 +281,15 @@ export default function AdminFamilyForm() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">المحافظة</label>
-              <input type="text" className="form-input" value={governorate} onChange={e => setGovernorate(e.target.value)} />
+              <input type="text" className="form-input" value={governorate || ''} onChange={e => setGovernorate(e.target.value)} />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">المركز / الحي</label>
-              <input type="text" className="form-input" value={district} onChange={e => setDistrict(e.target.value)} />
+              <input type="text" className="form-input" value={district || ''} onChange={e => setDistrict(e.target.value)} />
             </div>
             <div className="form-group" style={{ margin: 0, gridColumn: '1 / -1' }}>
               <label className="form-label">العنوان التفصيلي</label>
-              <input type="text" className="form-input" value={address} onChange={e => setAddress(e.target.value)} />
+              <input type="text" className="form-input" value={address || ''} onChange={e => setAddress(e.target.value)} />
             </div>
           </div>
 

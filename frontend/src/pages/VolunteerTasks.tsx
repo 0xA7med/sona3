@@ -3,11 +3,12 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { 
   MapPin, Phone, Calendar, CheckCircle, 
-  Clock, ExternalLink, RefreshCw 
+  Clock, ExternalLink, RefreshCw, X 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '../components/Toast';
 import { calculateDistribution } from '../lib/distributionService';
+import { lockService } from '../lib/lockService';
 import type { Child, Campaign } from '../types';
 
 interface Assignment {
@@ -30,10 +31,17 @@ export default function VolunteerTasks() {
   const { profile } = useAuthStore();
   const [tasks, setTasks] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locks, setLocks] = useState<any[]>([]);
+  const [wallet, setWallet] = useState({ received: 0, distributed: 0 });
 
   useEffect(() => {
     if (profile?.id) {
       fetchTasks();
+      fetchWallet();
+      const interval = setInterval(() => {
+        fetchLocks();
+      }, 30000); // Pulse every 30s
+      return () => clearInterval(interval);
     }
   }, [profile?.id]);
 
@@ -70,6 +78,13 @@ export default function VolunteerTasks() {
 
       if (error) throw error;
       setTasks(data as any[] || []);
+      
+      // Also fetch locks for all campaigns found
+      if (data && (data as any[]).length > 0) {
+        const campaignIds = [...new Set((data as any[]).map((t: any) => t.campaign.id))];
+        const allLocks = await Promise.all(campaignIds.map(id => lockService.getActiveLocks(id as string)));
+        setLocks(allLocks.flat());
+      }
     } catch (err: any) {
       console.error(err);
       toast('حدث خطأ في جلب المهام', 'error');
@@ -78,7 +93,51 @@ export default function VolunteerTasks() {
     }
   }
 
-  const updateStatus = async (taskId: string, newStatus: string) => {
+  async function fetchLocks() {
+    if (tasks.length > 0) {
+      const activeLocks = await lockService.getActiveLocks(tasks[0].campaign.id);
+      setLocks(activeLocks);
+    }
+  }
+
+  async function fetchWallet() {
+    if (!profile?.id) return;
+    try {
+      const { data: transfers } = await supabase
+        .from('volunteer_fund_transfers')
+        .select('amount')
+        .eq('receiver_id', profile.id);
+      
+      const { data: txs } = await supabase
+        .from('transactions')
+        .select('total_amount, amount')
+        .eq('volunteer_id', profile.id);
+
+      const received = (transfers || []).reduce((acc, t) => acc + t.amount, 0);
+      const distributed = (txs || []).reduce((acc, t) => acc + (t.total_amount || t.amount || 0), 0);
+      
+      setWallet({ received, distributed });
+    } catch (err) {
+      console.error('Wallet fetch error', err);
+    }
+  }
+
+  const handleStartWork = async (familyId: string, campaignId: string) => {
+    if (!profile?.id) return;
+    const res = await lockService.acquireLock(familyId, campaignId, profile.id);
+    if (!res.success) {
+      toast('⚠️ هذه الحالة قيد المعالجة حالياً من قبل متطوع آخر', 'warning');
+      fetchLocks();
+      return false;
+    }
+    toast('💪 تم قفل الحالة لك، يمكنك البدء بالتنفيذ', 'success');
+    const task = tasks.find(t => t.family.id === familyId);
+    if (task) updateStatus(task.id, 'in_progress', familyId, campaignId);
+    fetchLocks();
+    return true;
+  };
+
+  const updateStatus = async (taskId: string, newStatus: string, familyId?: string, campaignId?: string) => {
     try {
       const { error } = await supabase
         .from('case_assignments')
@@ -90,10 +149,28 @@ export default function VolunteerTasks() {
 
       if (error) throw error;
       
+      // Log to case_history
+      if (familyId && profile?.id) {
+        let actionType = 'STATUS_CHANGED';
+        if (newStatus === 'completed') actionType = 'TRANSFER_DONE';
+        if (newStatus === 'no_answer') actionType = 'CALLED_NO_ANSWER';
+        if (newStatus === 'unreachable') actionType = 'UNREACHABLE';
+
+        await supabase.from('case_history').insert({
+          family_id: familyId,
+          campaign_id: campaignId,
+          user_id: profile.id,
+          user_name: profile.full_name,
+          action_type: actionType,
+          description: `تغيير الحالة إلى ${newStatus}`,
+          metadata: { status: newStatus }
+        });
+      }
+
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as any } : t));
-      toast('✅ تم تحديث حالة المهمة', 'success');
+      toast('✅ تم تحديث الحالة وتوثيقها', 'success');
     } catch (err: any) {
-      toast('❌ فشل خديث الحالة', 'error');
+      toast('❌ فشل تحديث الحالة', 'error');
     }
   };
 
@@ -110,12 +187,18 @@ export default function VolunteerTasks() {
     <div className="page-content">
       <div className="page-header">
         <div>
-          <h1 className="page-title">مهامي الميدانية</h1>
-          <p className="page-subtitle">إدارة الحالات الموكلة إليك حالياً</p>
+          <h1 className="page-title">سجل العمليات</h1>
+          <p className="page-subtitle">إدارة الحالات الموكلة إليك حالياً للمتابعة والتوزيع</p>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={fetchTasks} disabled={loading}>
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div className="card p-sm px-md" style={{ background: 'var(--primary-light)', border: '1px solid var(--primary-border)', borderRadius: '14px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-dark)', opacity: 0.7 }}>رصيد محفظتي</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--primary)' }}>{(wallet.received - wallet.distributed).toLocaleString('ar-EG')} ج.م</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={fetchTasks} disabled={loading}>
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -154,6 +237,11 @@ export default function VolunteerTasks() {
                   </div>
                 </div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textAlign: 'left' }}>
+                  {locks.find(l => l.family_id === task.family.id && l.locked_by !== profile?.id) && (
+                    <div style={{ color: 'var(--error)', fontWeight: 800, marginBottom: '0.2rem' }}>
+                      🚫 قيد المعالجة (بواسطة {locks.find(l => l.family_id === task.family.id)?.locked_by_name || 'متطوع آخر'})
+                    </div>
+                  )}
                   <Calendar size={12} style={{ display: 'inline', marginLeft: '4px' }} />
                   {new Date(task.assigned_at).toLocaleDateString('ar-EG')}
                 </div>
@@ -207,18 +295,44 @@ export default function VolunteerTasks() {
               <div className="case-card-footer">
                 {task.status !== 'completed' ? (
                   <>
-                    <button 
-                      className="btn btn-primary btn-sm flex-1"
-                      onClick={() => updateStatus(task.id, 'completed')}
-                    >
-                      <CheckCircle size={16} /> مكتمل
-                    </button>
-                    <button 
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => updateStatus(task.id, 'in_progress')}
-                    >
-                      <Clock size={16} /> قيد العمل
-                    </button>
+                    {task.status === 'pending' ? (
+                      <button 
+                        className="btn btn-primary btn-sm flex-1"
+                        onClick={() => handleStartWork(task.family.id, task.campaign.id)}
+                      >
+                        <Clock size={16} /> ابدأ التنفيذ الآن
+                      </button>
+                    ) : (
+                      <>
+                        <button 
+                          className="btn btn-primary btn-sm flex-1"
+                          onClick={() => updateStatus(task.id, 'completed', task.family.id, task.campaign.id).then(() => lockService.releaseLock(task.family.id, profile?.id || ''))}
+                        >
+                          <CheckCircle size={16} /> إتمام التوزيع
+                        </button>
+                        <button 
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => {
+                            if (window.confirm('تعذر التواصل؟')) {
+                               updateStatus(task.id, 'no_answer', task.family.id, task.campaign.id);
+                            }
+                          }}
+                        >
+                          لم يرد
+                        </button>
+                        <button 
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => {
+                            if (window.confirm('هل تريد إلغاء القفل والعودة لاحقاً؟')) {
+                              lockService.releaseLock(task.family.id, profile?.id || '');
+                              updateStatus(task.id, 'pending', task.family.id, task.campaign.id);
+                            }
+                          }}
+                        >
+                          <X size={16} /> إلغاء
+                        </button>
+                      </>
+                    )}
                     <button 
                       className="btn btn-ghost btn-sm"
                       onClick={() => window.open(`https://maps.google.com/?q=${task.family.address}`, '_blank')}
