@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Phone, MapPin, 
-  DollarSign, Shield, Send, RefreshCw, MessageSquare,
-  Activity, Award, User
+  DollarSign, Activity, Award
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
-import { HISTORY_ACTION_LABELS, ASSIGNMENT_STATUS_LABELS } from '../types';
+import { HISTORY_ACTION_LABELS } from '../types';
 import type { Profile, Transaction, CaseHistoryEvent } from '../types';
 import ConfirmModal from '../components/ui/ConfirmModal';
 
@@ -20,7 +19,6 @@ export default function AdminVolunteerLog() {
   const [transfers, setTransfers]       = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
   const [fundAmount, setFundAmount] = useState(0);
-  const [funding, setFunding]     = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isWalletConfirmOpen, setIsWalletConfirmOpen] = useState(false);
   const [walletActionType, setWalletActionType] = useState<'add' | 'sub'>('add');
@@ -110,7 +108,6 @@ export default function AdminVolunteerLog() {
 
   const handleWalletAction = async () => {
     if (fundAmount <= 0) return;
-    setFunding(true);
     try {
       const finalAmount = walletActionType === 'add' ? fundAmount : -fundAmount;
       const { error } = await supabase
@@ -130,7 +127,7 @@ export default function AdminVolunteerLog() {
     } catch (err: any) {
       toast('❌ فشل العملية المالية', 'error');
     } finally {
-      setFunding(false);
+      // Done
     }
   };
 

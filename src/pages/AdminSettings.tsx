@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Save, Shield, Bell, Database, Globe } from 'lucide-react';
+import { Save, Bell, Database, Globe } from 'lucide-react';
 import { toast } from '../components/Toast';
 
 export default function AdminSettings() {

@@ -1,6 +1,6 @@
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { parseNationalID, GOVERNORATES } from '../types';
+import { parseNationalID } from '../types';
 import type { NIDData } from '../types';
 
 interface NIDInputProps {
@@ -9,12 +9,6 @@ interface NIDInputProps {
   className?: string;
 }
 
-const BADGE_LABELS: Record<string, string> = {
-  age:          '🎂',
-  gender:       '👤',
-  governorate:  '📍',
-  dateOfBirth:  '📅',
-};
 
 const GENDER_LABEL = { M: 'ذكر', F: 'أنثى' };
 

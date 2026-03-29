@@ -215,6 +215,12 @@ export interface NIDData {
   governorateCode?: string;
 }
 
+export interface IDParseResult extends NIDData {
+  isValid: boolean;
+  error?: string;
+  century?: 19 | 20;
+}
+
 /* ── Egyptian Governorates Map (NID codes) ─────────────────── */
 export const GOVERNORATES: Record<string, string> = {
   '01': 'القاهرة',
@@ -253,6 +259,15 @@ export function getPriorityLevel(score: number): { label: string; css: string } 
   if (score >= 50) return { label: 'عالية',   css: 'priority-high' };
   if (score >= 30) return { label: 'متوسطة', css: 'priority-medium' };
   return              { label: 'عادية',   css: 'priority-low' };
+}
+
+export interface PriorityInput {
+  socialStatus: SocialStatus;
+  hasChronicIllness: boolean;
+  isDisabled: boolean;
+  hasOrphanChildren: boolean;
+  childrenCount: number;
+  vulnerabilityScore: number;
 }
 
 /* ── Status Labels (Arabic) ─────────────────────────────────── */
