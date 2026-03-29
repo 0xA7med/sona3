@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
 import FamilyCard from '../components/FamilyCard';
+import FamilyDetail from '../components/FamilyDetail';
 import type { CaseAssignment, CaseLock, AssignmentStatus } from '../types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -24,14 +25,35 @@ export default function VolunteerHome() {
   const [search,      setSearch]      = useState('');
   const [tab,         setTab]         = useState<FilterTab>('pending');
   const [loading,     setLoading]     = useState(true);
+  const [activeCamp,  setActiveCamp]  = useState<any>(null);
+  const [selectedAsgn, setSelectedAsgn] = useState<CaseAssignment | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const myLocksRef = useRef<Set<string>>(new Set());
 
   /* ── Fetch assignments ─────────────────────────────────── */
+  const fetchCampaign = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (!error && data) {
+        setActiveCamp(data);
+      }
+    } catch (err) {
+      console.error('Error fetching campaign:', err);
+    }
+  }, []);
+
   const fetchAssignments = useCallback(async () => {
     if (!profile) return;
     setLoading(true);
     try {
+      await fetchCampaign(); // Load campaign first
       const { data, error } = await supabase
         .from('case_assignments')
         .select(`
@@ -146,8 +168,7 @@ export default function VolunteerHome() {
 
     if (action === 'view') {
       await lockCase(familyId);
-      // TODO: open family detail modal/page
-      toast('جارٍ فتح ملف الأسرة...', 'info');
+      setSelectedAsgn(asgn);
       return;
     }
 
@@ -230,129 +251,154 @@ export default function VolunteerHome() {
   const pendingCount   = assignments.filter(a => ['pending', 'in_progress'].includes(a.status)).length;
 
   return (
-    <div className="page-content">
-      {/* Header */}
-      <motion.div
-        className="page-header"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      >
-        <div>
-          <h1 className="page-title">مهامي اليوم</h1>
-          <p className="page-subtitle">
-            <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{pendingCount}</span> مهمة معلقة
-            {completedCount > 0 && <> · <span style={{ color: '#10b981', fontWeight: 700 }}>{completedCount}</span> مكتملة</>}
-          </p>
+    <div className="screen active" style={{ display: 'block' }}>
+      {/* Loading Skeleton Over Header */}
+      {loading && !activeCamp && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div className="skeleton" style={{ height: 160, borderRadius: 'var(--radius-lg)' }} />
         </div>
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={fetchAssignments}
-          title="تحديث"
-        >
-          <RefreshCw size={16} />
-        </button>
-      </motion.div>
-
-      {/* Progress bar */}
-      {assignments.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ marginBottom: '1.25rem' }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
-            <span>التقدم</span>
-            <span>{completedCount} / {assignments.length}</span>
-          </div>
-          <div style={{ height: 8, background: '#d4ebe3', borderRadius: '999px', overflow: 'hidden' }}>
-            <motion.div
-              style={{ height: '100%', background: 'linear-gradient(90deg, var(--primary), var(--gold))', borderRadius: '999px' }}
-              animate={{ width: `${assignments.length ? (completedCount / assignments.length) * 100 : 0}%` }}
-              transition={{ type: 'spring', stiffness: 80, damping: 20 }}
-            />
-          </div>
-        </motion.div>
       )}
 
-      {/* Search */}
-      <div className="search-box form-group">
-        <Search size={16} className="search-icon" />
-        <input
-          type="search"
-          className="form-input"
-          placeholder="ابحث بالاسم أو الهاتف أو المنطقة..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ paddingRight: '2.75rem' }}
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="filter-bar" style={{ marginBottom: '1.25rem' }}>
-        {TABS.map(t => {
-          const count = t.key === 'all' ? assignments.length
-            : t.key === 'pending' ? pendingCount
-            : assignments.filter(a => a.status === t.key).length;
-          return (
-            <button
-              key={t.key}
-              className={`filter-chip ${tab === t.key ? 'active' : ''}`}
-              onClick={() => setTab(t.key)}
-            >
-              {t.emoji} {t.label}
-              {count > 0 && (
-                <span style={{
-                  marginRight: '0.25rem',
-                  background: tab === t.key ? 'rgba(255,255,255,0.25)' : 'var(--primary-light)',
-                  color: tab === t.key ? 'white' : 'var(--primary)',
-                  padding: '0.05rem 0.4rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 700,
-                }}>
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Cases */}
-      {loading ? (
-        <div className="cases-grid">
-          {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 200, borderRadius: 16 }} />)}
-        </div>
-      ) : sorted.length === 0 ? (
+      {/* Campaign Banner */}
+      <section className="section">
         <motion.div
-          className="empty-state"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          className="campaign-banner"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
         >
-          <div className="empty-state-icon">
-            <CheckCircle size={28} />
+          <div className="banner-icon-row">
+            <div className="banner-icon-badge">
+              🎯 الأسر الموكلة إليك: {assignments.length}
+            </div>
+            <button
+              className="btn-ghost"
+              style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={fetchAssignments}
+              title="تحديث"
+            >
+              <RefreshCw size={14} />
+            </button>
           </div>
-          <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>
-            {tab === 'completed' ? '🎉 لم تُكمل أي مهمة بعد' : 'لا توجد مهام في هذا القسم'}
-          </p>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-light)' }}>
-            {search ? 'جرب بحثاً مختلفاً' : 'ستظهر هنا المهام المُسندة إليك'}
-          </p>
+          
+          <div className="banner-title">
+            {activeCamp?.name || (loading ? 'جارٍ تحميل الحملة...' : 'لا توجد حملة نشطة')}
+          </div>
+          <div className="banner-date">بمشاركة المتطوعة: {profile?.full_name}</div>
+          
+          <div className="progress-wrap mt-md">
+            <div className="progress-labels">
+              <span>نسبة الإنجاز</span>
+              <span>{assignments.length ? Math.round((completedCount / assignments.length) * 100) : 0}%</span>
+            </div>
+            <div className="progress-track">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${assignments.length ? (completedCount / assignments.length) * 100 : 0}%` }}
+              ></div>
+            </div>
+            <div style={{ fontSize: '0.75rem', marginTop: '6px', opacity: 0.8 }}>
+              {completedCount} مكتملة من أصل {assignments.length}
+            </div>
+          </div>
         </motion.div>
-      ) : (
-        <div className="cases-grid">
-          <AnimatePresence mode="popLayout">
-            {sorted.map((asgn, i) => (
-              <FamilyCard
-                key={asgn.id}
-                assignment={asgn}
-                lock={locks.get(asgn.family_id) ?? null}
-                currentUserId={profile?.id}
-                onAction={handleAction}
-                showQuickActions={asgn.status !== 'completed'}
-                index={i}
-              />
-            ))}
-          </AnimatePresence>
+      </section>
+
+      {/* Search */}
+      <section className="section" aria-label="بحث وفلترة">
+        <div className="search-box mb-sm">
+          <span className="search-box-icon">🔍</span>
+          <input
+            type="search"
+            placeholder="ابحث بالاسم، الهاتف، أو رقم التسلسل..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '12px 40px 12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--white)', outline: 'none' }}
+          />
         </div>
+
+        {/* Filter Chips */}
+        <div className="filter-bar mb-md" role="group" aria-label="فلترة القائمة">
+          {TABS.map(t => {
+            const count = t.key === 'all' ? assignments.length
+              : t.key === 'pending' ? pendingCount
+              : assignments.filter(a => a.status === t.key).length;
+            return (
+              <button
+                key={t.key}
+                className={`filter-chip ${tab === t.key ? 'active' : ''}`}
+                onClick={() => setTab(t.key)}
+              >
+                {t.label} {t.emoji}
+                {count > 0 && (
+                  <span style={{
+                    marginRight: '0.25rem',
+                    background: tab === t.key ? 'rgba(255,255,255,0.25)' : 'var(--primary-light)',
+                    color: tab === t.key ? 'white' : 'var(--primary)',
+                    padding: '2px 6px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 700,
+                  }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Mothers List */}
+      <section className="section" id="mothers-list" aria-label="قائمة الأمهات">
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[1, 2, 3].map(i => <div key={i} style={{ height: 160, background: '#e2e8f0', borderRadius: '14px', animation: 'pulse 1.5s infinite' }} />)}
+          </div>
+        ) : sorted.length === 0 ? (
+          <motion.div
+            className="empty-state"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--gray-600)' }}
+          >
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+              <CheckCircle size={48} style={{ margin: '0 auto', color: 'var(--green-light)' }} />
+            </div>
+            <p className="fw-700 text-lg">
+              {tab === 'completed' ? '🎉 لم تُكمل أي مهمة بعد' : 'لا توجد مهام في هذا القسم'}
+            </p>
+            <p className="text-sm mt-sm">
+              {search ? 'جرب بحثاً مختلفاً' : 'ستظهر هنا المهام المُسندة إليك'}
+            </p>
+          </motion.div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <AnimatePresence mode="popLayout">
+              {sorted.map((asgn, i) => (
+                <FamilyCard
+                  key={asgn.id}
+                  assignment={asgn}
+                  lock={locks.get(asgn.family_id) ?? null}
+                  currentUserId={profile?.id}
+                  onAction={handleAction}
+                  showQuickActions={asgn.status !== 'completed'}
+                  index={i}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </section>
+
+      {/* Family Detail Overlay */}
+      {selectedAsgn && (
+        <FamilyDetail
+          isOpen={!!selectedAsgn}
+          assignment={selectedAsgn}
+          onClose={async () => {
+             await unlockCase(selectedAsgn.family_id);
+             setSelectedAsgn(null);
+          }}
+          onAction={(action) => handleAction(action, selectedAsgn.id)}
+        />
       )}
     </div>
   );

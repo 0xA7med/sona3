@@ -32,10 +32,16 @@ export default function Navigation() {
   const items = NAV_ITEMS.filter(i => i.roles.includes(role));
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
+  const handleSignOut = () => {
+    if (window.confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+      signOut();
+    }
+  };
+
   return (
     <>
       {/* ── Desktop Sidebar ──────────────────────────────────── */}
-      <aside className="sidebar hidden md:flex" id="desktop-sidebar">
+      <aside className="sidebar hidden md:flex flex-col" id="desktop-sidebar">
         {/* Logo */}
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">🌙</div>
@@ -94,7 +100,7 @@ export default function Navigation() {
           </button>
           <button
             className="nav-link"
-            onClick={signOut}
+            onClick={handleSignOut}
             style={{ border: 'none', cursor: 'pointer', width: '100%', textAlign: 'right', fontFamily: 'inherit', color: 'rgba(239,68,68,0.8)' }}
           >
             <LogOut size={18} />
@@ -124,12 +130,6 @@ export default function Navigation() {
             </button>
           );
         })}
-        <button className="bottom-nav-item" onClick={signOut}>
-          <div className="nav-icon-wrap">
-            <LogOut size={18} />
-          </div>
-          <span>خروج</span>
-        </button>
       </nav>
     </>
   );

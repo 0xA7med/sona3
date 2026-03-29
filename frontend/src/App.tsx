@@ -13,6 +13,7 @@ import AdminHome       from './pages/AdminHome';
 import VolunteerHome   from './pages/VolunteerHome';
 import AdminFamilies   from './pages/AdminFamilies';
 import AdminFamilyForm from './pages/AdminFamilyForm';
+import Profile         from './pages/Profile';
 
 function AppContent() {
   const { user, loading, profile } = useAuthStore();
@@ -21,7 +22,9 @@ function AppContent() {
   const role        = profile?.role || 'volunteer';
   const isDesktop   = window.innerWidth >= 768;
 
-  if (loading && !user) {
+
+
+  if (loading) {
     return (
       <div style={{
         display: 'flex', height: '100dvh', flexDirection: 'column',
@@ -77,14 +80,15 @@ function AppContent() {
           <Route path="/volunteer/*"     element={user ? <VolunteerHome /> : <Navigate to="/login" />} />
 
           {/* Root redirect */}
+          <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
           <Route
             path="/"
             element={
               user
-                ? role === 'admin'
-                  ? <Navigate to="/admin" />
-                  : <Navigate to="/volunteer" />
-                : <Navigate to="/login" />
+                ? role === 'admin' 
+                  ? <Navigate to="/admin" replace /> 
+                  : <Navigate to="/volunteer" replace />
+                : <Navigate to="/login" replace />
             }
           />
 
@@ -100,27 +104,55 @@ export default function App() {
   const { setUser, loadProfile } = useAuthStore();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user);
-        loadProfile(session.user.id);
-      } else {
-        // stop loading if no session
+    let mounted = true;
+
+    async function initAuth() {
+      // 1. Get initial session explicitly
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (mounted) {
+        if (session?.user) {
+          setUser(session.user);
+          await loadProfile(session.user.id);
+        } else {
+          // No session, stop loading immediately
+          useAuthStore.setState({ loading: false });
+        }
+      }
+
+      // 2. Listen for changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mounted) return;
+
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            setUser(session.user);
+            await loadProfile(session.user.id);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          useAuthStore.setState({ profile: null, loading: false });
+        }
+      });
+
+      return subscription;
+    }
+
+    const authSubPromise = initAuth();
+
+    // Timeout fallback (shorter now)
+    const timeoutId = setTimeout(() => {
+      if (mounted && useAuthStore.getState().loading) {
+        console.warn('Auth loading timeout - forcing non-loading state');
         useAuthStore.setState({ loading: false });
       }
-    });
+    }, 5000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        loadProfile(session.user.id);
-      } else {
-        setUser(null);
-        useAuthStore.setState({ loading: false });
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      authSubPromise.then(sub => sub.unsubscribe());
+      clearTimeout(timeoutId);
+    };
   }, [setUser, loadProfile]);
 
   return (

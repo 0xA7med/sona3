@@ -31,137 +31,66 @@ export default function FamilyCard({
     onAction?.(action, assignment.id);
   };
 
+  const statusClass = assignment.status === 'completed' ? 'status-done' 
+    : isLockedByOther ? 'status-locked' 
+    : 'status-pending';
+
+  const badgeClass = assignment.status === 'completed' ? 'badge-done'
+    : isLockedByOther ? 'badge-locked'
+    : 'badge-pending';
+
+  const statusLabel = assignment.status === 'completed' ? 'تم التحويل ✅'
+    : isLockedByOther ? `قيد العمل 🔒`
+    : 'لم تُحوَّل ⏳';
+
+  // Calculate total amount (base + commission)
+  // Since we don't have the exact campaign logic here yet, we'll use a placeholder or derived value
+  // In the real app, this should come from the assignment/family data
+  const totalAmount = (family as any).total_amount || 0;
+
   return (
     <motion.div
-      className={`case-card ${isLockedByOther ? 'locked' : ''}`}
-      initial={{ opacity: 0, y: 16 }}
+      className={`mother-card ${statusClass}`}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, type: 'spring', stiffness: 320, damping: 28 }}
-      layout
+      transition={{ delay: index * 0.05 }}
+      onClick={() => handleAction('view')}
     >
-      {/* Lock overlay */}
-      {isLockedByOther && (
-        <div className="lock-badge animate-locked">
-          <Lock size={11} />
-          {lock.locked_by_name}
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="case-card-header">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-light)', fontWeight: 600 }}>
-              {family.sequential_id}
-            </span>
-            {isLockedByMe && (
-              <span style={{ fontSize: '0.65rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.1rem 0.4rem', borderRadius: '9999px', fontWeight: 700 }}>
-                لديك
-              </span>
-            )}
+      <div className="mc-top">
+        <div className="mc-info">
+          <div className="mc-name">{family.mother_name}</div>
+          <div className="mc-phone">
+            <span>📱</span>
+            <span>{family.phone || 'بدون هاتف'}</span>
           </div>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }} className="truncate-1">
-            {family.mother_name}
-          </h3>
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem', flexShrink: 0 }}>
-          <span className={`priority-badge ${priority.css}`}>
-            <Star size={10} />
-            {priority.label}
-          </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-light)', fontWeight: 700 }}>
-            {family.priority_score} نقطة
-          </span>
+        <div className={`status-badge ${badgeClass}`}>
+          {statusLabel}
         </div>
       </div>
 
-      {/* Body */}
-      <div className="case-card-body">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          {family.phone && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              <Phone size={14} style={{ flexShrink: 0, color: 'var(--primary)' }} />
-              <span dir="ltr">{family.phone}</span>
-            </div>
-          )}
-          {(family.governorate || family.district) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              <MapPin size={14} style={{ flexShrink: 0, color: 'var(--primary)' }} />
-              <span className="truncate-1">
-                {[family.governorate, family.district].filter(Boolean).join(' — ')}
-              </span>
-            </div>
-          )}
-          {family._children_count !== undefined && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              <Users size={14} style={{ flexShrink: 0, color: 'var(--primary)' }} />
-              <span>{family._children_count} أطفال</span>
-            </div>
-          )}
+      <div className="mc-bottom">
+        <div className="mc-children-count">
+          <span>👨‍👩‍👧</span>
+          <span>{family._children_count || 0} أطفال</span>
+          <span style={{ margin: '0 4px', opacity: 0.3 }}>|</span>
+          <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{family.district}</span>
         </div>
 
-        {/* Tags */}
-        <div className="gap-wrap" style={{ marginTop: '0.75rem' }}>
-          <span className="badge badge-pending">
-            {SOCIAL_STATUS_LABELS[family.social_status]}
-          </span>
-          {family.has_chronic_illness && (
-            <span className="badge" style={{ background: '#fff7ed', color: '#c2410c' }}>مريض مزمن</span>
-          )}
-          {family.is_disabled && (
-            <span className="badge" style={{ background: '#faf5ff', color: '#7c3aed' }}>ذوي الهمم</span>
-          )}
-          {(family.children ?? []).some(c => c.is_orphan) && (
-            <span className="badge" style={{ background: '#fef2f2', color: '#991b1b' }}>يتيم</span>
-          )}
+        <div className="mc-amount-chip">
+          {totalAmount} <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>ج.م</span>
         </div>
       </div>
-
-      {/* Quick Actions Footer */}
-      {showQuickActions && !isLockedByOther && (
-        <div className="case-card-footer">
-          <button
-            className="quick-btn quick-btn-warning"
-            onClick={() => handleAction('no_answer')}
-            title="جرس ولم يرد"
-          >
-            <span style={{ fontSize: '1rem' }}>📞</span>
-            <span>لم يرد</span>
-          </button>
-          <button
-            className="quick-btn quick-btn-error"
-            onClick={() => handleAction('unreachable')}
-            title="مغلق / تعذر التواصل"
-          >
-            <span style={{ fontSize: '1rem' }}>🚫</span>
-            <span>مغلق</span>
-          </button>
-          <button
-            className="quick-btn quick-btn-success"
-            onClick={() => handleAction('completed')}
-            title="تم التحويل"
-          >
-            <span style={{ fontSize: '1rem' }}>✅</span>
-            <span>تم</span>
-          </button>
-          <button
-            className="quick-btn quick-btn-info"
-            onClick={() => handleAction('view')}
-            title="عرض التفاصيل"
-            style={{ marginRight: 'auto' }}
-          >
-            <ChevronLeft size={18} />
-            <span>تفاصيل</span>
-          </button>
-        </div>
-      )}
 
       {isLockedByOther && (
-        <div className="case-card-footer" style={{ justifyContent: 'center', background: '#fff5f5' }}>
-          <span style={{ fontSize: '0.78rem', color: '#991b1b', fontWeight: 600 }}>
-            🔒 يعمل عليها {lock?.locked_by_name} الآن
-          </span>
+        <div className="mc-by-line">
+          🔒 تعمل عليها الآن: <b>{lock?.locked_by_name}</b>
+        </div>
+      )}
+      
+      {isLockedByMe && !assignment.status.includes('completed') && (
+        <div className="mc-by-line" style={{ color: 'var(--green)', borderTopColor: 'var(--green-mid)' }}>
+          ⭐️ أنتِ تعملين على هذا الملف الآن
         </div>
       )}
     </motion.div>

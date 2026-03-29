@@ -23,11 +23,21 @@ export default function Login() {
 
     if (isLogin) {
       const { error } = await signIn(email.trim(), password);
-      if (error) toast('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error');
+      if (error) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes('confirm') || msg.includes('verification')) {
+          toast('يرجى تأكيد بريدك الإلكتروني أولاً. تفقد صندوق الوارد.', 'info', 5000);
+        } else {
+          toast('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error');
+        }
+      }
     } else {
-      const { error } = await signUp(email.trim(), password, name.trim());
+      const { data, error } = await signUp(email.trim(), password, name.trim());
       if (error) {
         toast(error.message.includes('already registered') ? 'البريد مستخدم بالفعل' : 'حدث خطأ في التسجيل', 'error');
+      } else if (!data?.session) {
+        toast('تم التسجيل! تحتاج لتأكيد بريدك الإلكتروني لتتمكن من الدخول (أو يمكن للمدير تفعيله لك).', 'info', 6000);
+        setIsLogin(true);
       } else {
         toast('تم إنشاء الحساب بنجاح! سيتم تحويلك...', 'success');
       }
