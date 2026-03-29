@@ -42,10 +42,10 @@ export default function AdminFamilies() {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (
-      f.mother_name.toLowerCase().includes(q) ||
-      f.national_id.includes(q) ||
+      f.mother_name?.toLowerCase().includes(q) ||
+      f.national_id?.includes(q) ||
       f.phone?.includes(q) ||
-      f.sequential_id.toLowerCase().includes(q) ||
+      f.sequential_id?.toLowerCase().includes(q) ||
       f.governorate?.includes(q)
     );
   });

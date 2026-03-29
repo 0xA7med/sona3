@@ -12,7 +12,16 @@ import Login           from './pages/Login';
 import AdminHome       from './pages/AdminHome';
 import VolunteerHome   from './pages/VolunteerHome';
 import AdminFamilies   from './pages/AdminFamilies';
-import AdminFamilyForm from './pages/AdminFamilyForm';
+import AdminFamilyForm   from './pages/AdminFamilyForm';
+import AdminFamilyView   from './pages/AdminFamilyView';
+import AdminCampaigns from './pages/AdminCampaigns';
+import AdminCampaignView from './pages/AdminCampaignView';
+import AdminCampaignForm from './pages/AdminCampaignForm';
+import AdminVolunteers from './pages/AdminVolunteers';
+import AdminTargeting from './pages/AdminTargeting';
+import AdminReports from './pages/AdminReports';
+import AdminTransactions from './pages/AdminTransactions';
+import AdminSettings from './pages/AdminSettings';
 import Profile         from './pages/Profile';
 import VolunteerTasks  from './pages/VolunteerTasks';
 
@@ -72,8 +81,17 @@ function AppContent() {
           <Route path="/admin"                 element={user && role === 'admin' ? <AdminHome />       : <Navigate to="/login" />} />
           <Route path="/admin/families"        element={user && role === 'admin' ? <AdminFamilies />   : <Navigate to="/login" />} />
           <Route path="/admin/families/new"    element={user && role === 'admin' ? <AdminFamilyForm /> : <Navigate to="/login" />} />
+          <Route path="/admin/families/:id"    element={user && role === 'admin' ? <AdminFamilyView /> : <Navigate to="/login" />} />
           <Route path="/admin/families/:id/edit" element={user && role === 'admin' ? <AdminFamilyForm /> : <Navigate to="/login" />} />
-          <Route path="/admin/campaigns"       element={user && role === 'admin' ? <AdminHome />       : <Navigate to="/login" />} />
+          <Route path="/admin/campaigns"       element={user && role === 'admin' ? <AdminCampaigns />    : <Navigate to="/login" />} />
+          <Route path="/admin/campaigns/new"   element={user && role === 'admin' ? <AdminCampaignForm /> : <Navigate to="/login" />} />
+          <Route path="/admin/campaigns/:id"   element={user && role === 'admin' ? <AdminCampaignView /> : <Navigate to="/login" />} />
+          <Route path="/admin/campaigns/:id/edit" element={user && role === 'admin' ? <AdminCampaignForm /> : <Navigate to="/login" />} />
+          <Route path="/admin/volunteers"      element={user && role === 'admin' ? <AdminVolunteers />   : <Navigate to="/login" />} />
+          <Route path="/admin/targeting"       element={user && role === 'admin' ? <AdminTargeting />  : <Navigate to="/login" />} />
+          <Route path="/admin/transactions"    element={user && role === 'admin' ? <AdminTransactions /> : <Navigate to="/login" />} />
+          <Route path="/admin/reports"         element={user && role === 'admin' ? <AdminReports />    : <Navigate to="/login" />} />
+          <Route path="/admin/settings"        element={user && role === 'admin' ? <AdminSettings />   : <Navigate to="/login" />} />
           <Route path="/admin/*"               element={user && role === 'admin' ? <AdminHome />       : <Navigate to="/login" />} />
 
           {/* Volunteer Routes */}

@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, Calendar, User, LogOut,
-  Heart, ChevronDown, Settings
+  Heart, ChevronDown, Settings, History as HistoryIcon
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -16,6 +16,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'الرئيسية',  icon: <LayoutDashboard size={20} />, path: '/admin',           roles: ['admin'] },
   { label: 'الأسر',     icon: <Users size={20} />,            path: '/admin/families',  roles: ['admin'] },
+  { label: 'السجل المالي', icon: <HistoryIcon size={20} />,       path: '/admin/transactions', roles: ['admin'] },
   { label: 'الحملات',   icon: <Calendar size={20} />,         path: '/admin/campaigns', roles: ['admin'] },
   { label: 'الإعدادات', icon: <Settings size={20} />,         path: '/admin/settings',  roles: ['admin'] },
   { label: 'الرئيسية',  icon: <LayoutDashboard size={20} />, path: '/volunteer',       roles: ['volunteer'] },
@@ -30,7 +31,12 @@ export default function Navigation() {
   const role = profile?.role || 'volunteer';
 
   const items = NAV_ITEMS.filter(i => i.roles.includes(role));
-  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const isActive = (path: string) => {
+    if (path === '/admin' || path === '/volunteer') {
+      return location.pathname === path;
+    }
+    return location.pathname.startsWith(path);
+  };
 
   const handleSignOut = () => {
     if (window.confirm('هل أنت متأكد من تسجيل الخروج؟')) {

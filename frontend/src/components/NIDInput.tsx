@@ -20,7 +20,7 @@ const GENDER_LABEL = { M: 'ذكر', F: 'أنثى' };
 
 export default function NIDInput({ value, onChange, className = '' }: NIDInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const nidData  = value.length === 14 ? parseNationalID(value) : null;
+  const nidData  = (value?.length ?? 0) === 14 ? parseNationalID(value) : null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 14);

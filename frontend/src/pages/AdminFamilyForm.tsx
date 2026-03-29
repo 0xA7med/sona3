@@ -8,8 +8,10 @@ import { toast } from '../components/Toast';
 import NIDInput from '../components/NIDInput';
 import { 
   type Family, type Child, type NIDData, type SocialStatus, type SchoolStage,
-  calcPriorityScore, SOCIAL_STATUS_LABELS, SCHOOL_STAGE_LABELS 
+  calcPriorityScore, SOCIAL_STATUS_LABELS, SCHOOL_STAGE_LABELS,
+  parseNationalID
 } from '../types';
+import { detectSchoolStage } from '../lib/distributionService';
 
 export default function AdminFamilyForm() {
   const { id } = useParams();
@@ -23,7 +25,6 @@ export default function AdminFamilyForm() {
   // Form State
   const [motherName, setMotherName] = useState('');
   const [nationalId, setNationalId] = useState('');
-  const [nidData, setNidData]       = useState<NIDData | null>(null);
   
   const [phone, setPhone] = useState('');
   const [governorate, setGovernorate] = useState('');
@@ -66,7 +67,7 @@ export default function AdminFamilyForm() {
       
       const f = data as Family;
       setMotherName(f.mother_name);
-      setNationalId(f.national_id);
+      setNationalId(f.national_id || '');
       setPhone(f.phone || '');
       setGovernorate(f.governorate || '');
       setDistrict(f.district || '');
@@ -95,7 +96,20 @@ export default function AdminFamilyForm() {
   const updateChild = (index: number, updates: Partial<Child>) => {
     setChildren(prev => {
       const copy = [...prev];
-      copy[index] = { ...copy[index], ...updates };
+      let newChild = { ...copy[index], ...updates };
+
+      // Auto-populate from NID if provided
+      if (updates.national_id && updates.national_id.length === 14) {
+        const data = parseNationalID(updates.national_id);
+        if (data.valid && data.age !== undefined) {
+          newChild.age = data.age;
+          newChild.gender = data.gender;
+          newChild.birth_date = data.dateOfBirth?.toISOString().split('T')[0];
+          newChild.school_stage = detectSchoolStage(data.age);
+        }
+      }
+
+      copy[index] = newChild;
       return copy;
     });
   };
@@ -106,7 +120,6 @@ export default function AdminFamilyForm() {
 
   const handleNIDChange = (val: string, data: NIDData) => {
     setNationalId(val);
-    setNidData(data.valid ? data : null);
     if (data.valid && data.governorate && !governorate) {
       setGovernorate(data.governorate);
     }
@@ -166,6 +179,9 @@ export default function AdminFamilyForm() {
       const childrenToInsert = children.filter(c => c.child_name).map(c => ({
         family_id: familyId,
         child_name: c.child_name,
+        national_id: c.national_id || null,
+        birth_date: c.birth_date || null,
+        gender: c.gender || null,
         age: c.age || 0,
         school_stage: c.school_stage || 'not_in_school',
         is_orphan: c.is_orphan || false
@@ -315,10 +331,18 @@ export default function AdminFamilyForm() {
               >
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                   <div className="form-group" style={{ margin: 0, flex: 2 }}>
-                    <label className="form-label">اسم الابن</label>
+                    <label className="form-label">الاسم بالكامل</label>
                     <input type="text" className="form-input" required value={c.child_name || ''} onChange={e => updateChild(i, { child_name: e.target.value })} />
                   </div>
-                  <div className="form-group" style={{ margin: 0, flex: 1 }}>
+                  <div className="form-group" style={{ margin: 0, flex: 2 }}>
+                    <label className="form-label">الرقم القومي (اختياري)</label>
+                    <input 
+                      type="text" className="form-input" maxLength={14} placeholder="14 رقم"
+                      value={c.national_id || ''} 
+                      onChange={e => updateChild(i, { national_id: e.target.value.replace(/\D/g, '') })} 
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0, flex: 0.8 }}>
                     <label className="form-label">العمر</label>
                     <input type="number" className="form-input" min={0} value={c.age} onChange={e => updateChild(i, { age: Number(e.target.value) })} />
                   </div>

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Users, CheckCircle, Clock,
+  Users, CheckCircle,
   Plus, RefreshCw, BarChart3
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -17,6 +17,7 @@ interface DashboardStats {
   pendingAssignments: number;
   totalVolunteers: number;
   totalAmountDistributed: number;
+  totalChildren: number;
 }
 
 export default function AdminHome() {
@@ -24,7 +25,8 @@ export default function AdminHome() {
   const { profile } = useAuthStore();
   const [stats,     setStats]     = useState<DashboardStats>({ 
     totalFamilies: 0, activeCampaigns: 0, completedThisMonth: 0, 
-    pendingAssignments: 0, totalVolunteers: 0, totalAmountDistributed: 0 
+    pendingAssignments: 0, totalVolunteers: 0, totalAmountDistributed: 0,
+    totalChildren: 0
   });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -38,14 +40,16 @@ export default function AdminHome() {
         { count: completed },
         { count: pending },
         { count: volunteers },
-        { data: distributions }
+        { data: distributions },
+        { count: children }
       ] = await Promise.all([
         supabase.from('families').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('campaigns').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(5),
         supabase.from('case_assignments').select('*', { count: 'exact', head: true }).eq('status', 'completed').gte('completed_at', new Date(new Date().setDate(1)).toISOString()),
         supabase.from('case_assignments').select('*', { count: 'exact', head: true }).in('status', ['pending', 'in_progress']),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'volunteer').eq('is_active', true),
-        supabase.from('transactions').select('amount').eq('status', 'completed')
+        supabase.from('transactions').select('amount').eq('status', 'completed'),
+        supabase.from('children').select('*', { count: 'exact', head: true })
       ]);
 
       const distributed = (distributions ?? []).reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -56,7 +60,8 @@ export default function AdminHome() {
         completedThisMonth: completed ?? 0,
         pendingAssignments: pending ?? 0,
         totalVolunteers:    volunteers ?? 0,
-        totalAmountDistributed: distributed
+        totalAmountDistributed: distributed,
+        totalChildren:      children ?? 0
       });
       setCampaigns(activeCamps ?? []);
     } catch (err) {
@@ -103,8 +108,8 @@ export default function AdminHome() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'إجمالي الأسر',       value: stats.totalFamilies,      icon: Users,      color: '#068f64', bg: '#edfcf5' },
+          { label: 'إجمالي الأبناء',      value: stats.totalChildren,      icon: Users,      color: '#d4af37', bg: '#fefce8' },
           { label: 'مكتمل هذا الشهر',    value: stats.completedThisMonth, icon: CheckCircle, color: '#10b981', bg: '#ecfdf5' },
-          { label: 'مهام معلقة',         value: stats.pendingAssignments, icon: Clock,       color: '#f59e0b', bg: '#fffbeb' },
           { label: 'إجمالي التوزيعات',   value: stats.totalAmountDistributed, icon: BarChart3, color: '#3b82f6', bg: '#eff6ff', suffix: ' ج.م' },
         ].map((s, i) => (
           <motion.div

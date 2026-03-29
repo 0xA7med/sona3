@@ -65,6 +65,7 @@ export interface Child {
   child_name: string;
   national_id?: string;
   date_of_birth?: string;
+  birth_date?: string; // Standard DB field
   age?: number;
   gender?: Gender;
   grade_level?: string;
@@ -85,6 +86,18 @@ export interface TargetingRule {
   label?: string;
 }
 
+export interface AgeBracket {
+  from: number;
+  to: number;
+  amount: number;
+  label?: string;
+}
+
+export interface CommissionRule {
+  threshold: number;
+  fee: number;
+}
+
 export interface Campaign {
   id: string;
   name: string;
@@ -95,6 +108,9 @@ export interface Campaign {
   budget: number;
   amount_per_family: number;
   targeting_rules: TargetingRule[];
+  age_brackets: AgeBracket[];
+  commission_rules: CommissionRule[];
+  is_auto_calculate: boolean;
   status: CampaignStatus;
   created_by?: string;
   created_at: string;
@@ -260,6 +276,14 @@ export const HISTORY_ACTION_LABELS: Record<HistoryActionType, { label: string; e
   ASSIGNED:         { label: 'تم إسناد حالة لمتطوع',       emoji: '👤' },
   NOTE_ADDED:       { label: 'إضافة ملاحظة',              emoji: '📝' },
   STATUS_CHANGED:   { label: 'تغيير حالة الأسرة',         emoji: '🔄' },
+};
+
+export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
+  financial_transfer: 'تحويل مالي',
+  food_basket:        'كرتونة طعام',
+  clothing:           'كسوة / ملابس',
+  school_supplies:    'مستلزمات دراسية',
+  other:              'أخرى',
 };
 
 /* ── NID Parser ────────────────────────────────────────────── */
