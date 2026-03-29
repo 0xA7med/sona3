@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-  Users, Calendar, CheckCircle, TrendingUp, Clock,
-  Plus, ArrowLeft, Activity, RefreshCw, BarChart3
+  Users, CheckCircle, Clock,
+  Plus, RefreshCw, BarChart3
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';

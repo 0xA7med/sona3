@@ -6,12 +6,13 @@ interface AuthStore {
   profile: any | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ data: any; error: any }>;
+  signUp: (email: string, password: string, fullName: string, phone?: string, zone?: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
   setUser: (user: any) => void;
   loadProfile: (userId: string) => Promise<void>;
   updateRole: (role: string) => Promise<void>;
   setProfile: (profile: any) => void;
+  setLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -20,12 +21,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   loading: true,
 
   setUser: (user) => set({ user }),
+  setLoading: (loading) => set({ loading }),
   
   loadProfile: async (userId) => {
     try {
       set({ loading: true });
       
-      // Attempt to fetch profile from DB
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -37,13 +38,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         throw error;
       }
 
-      // If profile exists, use it
       if (data) {
         set({ profile: data });
         return;
       }
 
-      // If no profile, try to create or fallback to metadata
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No auth user found');
 
@@ -60,16 +59,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         if (!createError && newProfile) {
           set({ profile: newProfile });
         } else {
-          console.warn('Profile creation restricted by RLS, using metadata fallback.');
           set({ profile: { id: userId, full_name: fullName, role: metaRole } });
         }
       } catch (insertErr) {
-        console.warn('Insert failed, falling back to metadata:', insertErr);
         set({ profile: { id: userId, full_name: fullName, role: metaRole } });
       }
     } catch (err: any) {
       console.error('Critical error in loadProfile:', err.message || err);
-      // Ensure we don't leave the user in a broken state
       set({ profile: { id: userId, role: 'volunteer' } });
     } finally {
       set({ loading: false });

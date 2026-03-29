@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { 
-  Heart, MapPin, Phone, Calendar, CheckCircle, 
-  Clock, AlertCircle, ExternalLink, RefreshCw 
+  MapPin, Phone, Calendar, CheckCircle, 
+  Clock, ExternalLink, RefreshCw 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '../components/Toast';
