@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '../components/Toast';
 
 export default function Profile() {
-  const { profile, signOut, loadProfile } = useAuthStore();
+  const { profile, signOut, setProfile, loadProfile } = useAuthStore();
   const [stats, setStats] = useState({
     completed: 0,
     active: 0,
@@ -74,7 +74,7 @@ export default function Profile() {
 
       if (error) throw error;
       
-      await loadProfile(profile.id);
+      setProfile({ ...profile, ...form });
       setIsEditing(false);
       toast('✅ تم تحديث البيانات بنجاح', 'success');
     } catch (err: any) {

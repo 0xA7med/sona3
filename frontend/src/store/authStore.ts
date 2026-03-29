@@ -11,6 +11,7 @@ interface AuthStore {
   setUser: (user: any) => void;
   loadProfile: (userId: string) => Promise<void>;
   updateRole: (role: string) => Promise<void>;
+  setProfile: (profile: any) => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -89,12 +90,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     return { data, error };
   },
 
-  signUp: async (email, password, fullName) => {
+  signUp: async (email, password, fullName, phone?: string, zone?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName }
+        data: { 
+          full_name: fullName,
+          phone: phone,
+          zone: zone
+        }
       }
     });
 
@@ -125,5 +130,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } else {
       console.error('Failed to update role', error);
     }
-  }
+  },
+
+  setProfile: (profile) => set({ profile })
 }));

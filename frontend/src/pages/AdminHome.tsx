@@ -100,7 +100,7 @@ export default function AdminHome() {
       </motion.div>
 
       {/* Stats Grid - Premium Restored */}
-      <div className="dashboard-grid stagger mb-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'إجمالي الأسر',       value: stats.totalFamilies,      icon: Users,      color: '#068f64', bg: '#edfcf5' },
           { label: 'مكتمل هذا الشهر',    value: stats.completedThisMonth, icon: CheckCircle, color: '#10b981', bg: '#ecfdf5' },
@@ -110,10 +110,9 @@ export default function AdminHome() {
           <motion.div
             key={s.label}
             className="stat-card"
-            style={{ gridColumn: 'span 3' }}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.07 }}
+            transition={{ delay: i * 0.05 }}
           >
             <div style={{ 
               width: 44, height: 44, borderRadius: 14, 
@@ -133,7 +132,7 @@ export default function AdminHome() {
       </div>
 
       {/* Main Grid: Content + Side Actions */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '1.5rem' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
         
         {/* Active Campaigns Column */}
         <div>

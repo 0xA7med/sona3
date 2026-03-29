@@ -14,6 +14,7 @@ import VolunteerHome   from './pages/VolunteerHome';
 import AdminFamilies   from './pages/AdminFamilies';
 import AdminFamilyForm from './pages/AdminFamilyForm';
 import Profile         from './pages/Profile';
+import VolunteerTasks  from './pages/VolunteerTasks';
 
 function AppContent() {
   const { user, loading, profile } = useAuthStore();
@@ -76,8 +77,9 @@ function AppContent() {
           <Route path="/admin/*"               element={user && role === 'admin' ? <AdminHome />       : <Navigate to="/login" />} />
 
           {/* Volunteer Routes */}
-          <Route path="/volunteer"       element={user ? <VolunteerHome /> : <Navigate to="/login" />} />
-          <Route path="/volunteer/*"     element={user ? <VolunteerHome /> : <Navigate to="/login" />} />
+          <Route path="/volunteer"       element={user ? <VolunteerHome />  : <Navigate to="/login" />} />
+          <Route path="/volunteer/tasks" element={user ? <VolunteerTasks /> : <Navigate to="/login" />} />
+          <Route path="/volunteer/*"     element={user ? <VolunteerHome />  : <Navigate to="/login" />} />
 
           {/* Root redirect */}
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />

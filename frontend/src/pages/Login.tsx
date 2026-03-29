@@ -10,12 +10,14 @@ export default function Login() {
   const [name,     setName]     = useState('');
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
+  const [phone,    setPhone]    = useState('');
+  const [zone,     setZone]     = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || (!isLogin && !name)) {
+    if (!email || !password || (!isLogin && (!name || !phone || !zone))) {
       toast('يرجى إدخال جميع البيانات المطلوبة', 'warning');
       return;
     }
@@ -32,7 +34,13 @@ export default function Login() {
         }
       }
     } else {
-      const { data, error } = await signUp(email.trim(), password, name.trim());
+      const { data, error } = await signUp(
+        email.trim(), 
+        password, 
+        name.trim(), 
+        phone.trim(), 
+        zone.trim()
+      );
       if (error) {
         toast(error.message.includes('already registered') ? 'البريد مستخدم بالفعل' : 'حدث خطأ في التسجيل', 'error');
       } else if (!data?.session) {
@@ -47,7 +55,7 @@ export default function Login() {
 
   return (
     <div className="auth-bg">
-      {/* Floating particles */}
+      {/* Floating particles background stays the same */}
       {[...Array(6)].map((_, i) => (
         <motion.div
           key={i}
@@ -78,53 +86,70 @@ export default function Login() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 280, damping: 24 }}
       >
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.2 }}
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: 20,
+              width: 72, height: 72, borderRadius: 20,
               background: 'linear-gradient(135deg, var(--gold) 0%, #9a6e1a 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 1rem',
-              boxShadow: 'var(--shadow-gold)',
-              fontSize: '2rem',
+              margin: '0 auto 1rem', boxShadow: 'var(--shadow-gold)', fontSize: '2rem',
             }}
           >
             <HeartHandshake size={36} color="white" />
           </motion.div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--primary-dark)', marginBottom: '0.25rem' }}>
-            صناع السعادة
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            نظام إدارة التوزيعات والمساعدات — v2
-          </p>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--primary-dark)', marginBottom: '0.25rem' }}>صناع السعادة</h1>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>نظام إدارة التوزيعات والمساعدات — v2</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
           <AnimatePresence mode="popLayout">
             {!isLogin && (
               <motion.div
+                key="signup-fields"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="form-group"
+                style={{ overflow: 'hidden' }}
               >
-                <label className="form-label" htmlFor="name">الاسم الثلاثي</label>
-                <input
-                  id="name"
-                  type="text"
-                  className="form-input form-input-lg"
-                  placeholder="محمد أحمد محمود"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  disabled={loading}
-                />
+                <div className="form-group">
+                  <label className="form-label" htmlFor="name">الاسم الثلاثي</label>
+                  <input
+                    id="name"
+                    type="text"
+                    className="form-input form-input-lg"
+                    placeholder="محمد أحمد محمود"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="phone">رقم الهاتف</label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    className="form-input form-input-lg"
+                    placeholder="01xxxxxxxxx"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="zone">المنطقة / السكن</label>
+                  <input
+                    id="zone"
+                    type="text"
+                    className="form-input form-input-lg"
+                    placeholder="القاهرة، شارع..."
+                    value={zone}
+                    onChange={e => setZone(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -138,8 +163,7 @@ export default function Login() {
               placeholder="example@domain.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-              dir="ltr"
+              autoComplete="email" dir="ltr"
               style={{ textAlign: 'left' }}
               disabled={loading}
             />
@@ -156,18 +180,15 @@ export default function Login() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 autoComplete={isLogin ? "current-password" : "new-password"}
-                dir="ltr"
-                style={{ textAlign: 'left', paddingLeft: '3rem' }}
+                dir="ltr" style={{ textAlign: 'left', paddingLeft: '3rem' }}
                 disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPw(v => !v)}
                 style={{
-                  position: 'absolute', left: '0.875rem', top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-light)', padding: '0.25rem',
+                  position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', padding: '0.25rem'
                 }}
                 tabIndex={-1}
               >
@@ -200,20 +221,20 @@ export default function Login() {
               </>
             )}
           </motion.button>
+          
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem' }}>
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              style={{
+                background: 'none', border: 'none', color: 'var(--primary)',
+                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+              }}
+            >
+              {isLogin ? 'ليس لديك حساب؟ سجل كمتطوع جديد' : 'لديك حساب بالفعل؟ سجل دخول'}
+            </button>
+          </div>
         </form>
-
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem' }}>
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            style={{
-              background: 'none', border: 'none', color: 'var(--primary)',
-              fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
-            }}
-          >
-            {isLogin ? 'ليس لديك حساب؟ سجل كمتطوع جديد' : 'لديك حساب بالفعل؟ سجل دخول'}
-          </button>
-        </div>
       </motion.div>
     </div>
   );
