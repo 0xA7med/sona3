@@ -94,3 +94,4 @@ BEGIN
     RETURN v_new_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+ 
