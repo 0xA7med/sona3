@@ -216,7 +216,6 @@ export interface NIDData {
 }
 
 export interface IDParseResult extends NIDData {
-  isValid: boolean;
   error?: string;
   century?: 19 | 20;
 }

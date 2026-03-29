@@ -15,16 +15,16 @@ const GOVERNORATES: Record<number, string> = {
 
 export function parseEgyptianID(nationalId: string): IDParseResult {
   if (!nationalId || nationalId.length !== 14) {
-    return { isValid: false, error: 'الرقم القومي يجب أن يكون 14 رقماً' };
+    return { valid: false, error: 'الرقم القومي يجب أن يكون 14 رقماً' };
   }
 
   if (!/^\d{14}$/.test(nationalId)) {
-    return { isValid: false, error: 'الرقم القومي يجب أن يحتوي على أرقام فقط' };
+    return { valid: false, error: 'الرقم القومي يجب أن يحتوي على أرقام فقط' };
   }
 
   const centuryDigit = parseInt(nationalId[0]);
   if (centuryDigit !== 2 && centuryDigit !== 3) {
-    return { isValid: false, error: 'رقم القرن غير صحيح (يجب أن يكون 2 أو 3)' };
+    return { valid: false, error: 'رقم القرن غير صحيح (يجب أن يكون 2 أو 3)' };
   }
 
   const century: 19 | 20 = centuryDigit === 2 ? 19 : 20;
@@ -40,12 +40,12 @@ export function parseEgyptianID(nationalId: string): IDParseResult {
 
   // التحقق من صحة التاريخ
   if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
-    return { isValid: false, error: 'تاريخ الميلاد في الرقم القومي غير صحيح' };
+    return { valid: false, error: 'تاريخ الميلاد في الرقم القومي غير صحيح' };
   }
 
   const dateOfBirth = new Date(year, monthNum - 1, dayNum);
   if (isNaN(dateOfBirth.getTime())) {
-    return { isValid: false, error: 'تاريخ الميلاد غير صحيح' };
+    return { valid: false, error: 'تاريخ الميلاد غير صحيح' };
   }
 
   // حساب العمر
@@ -63,12 +63,12 @@ export function parseEgyptianID(nationalId: string): IDParseResult {
   const governorate = GOVERNORATES[govCode];
 
   return {
-    isValid: true,
+    valid: true,
     dateOfBirth,
     age,
     gender,
     governorate,
-    governorateCode: govCode,
+    governorateCode: govCode.toString().padStart(2, '0'),
     century,
   };
 }
@@ -110,5 +110,5 @@ export function getGovernorateName(code: number): string {
  * التحقق السريع من صحة الرقم القومي
  */
 export function isValidID(nationalId: string): boolean {
-  return parseEgyptianID(nationalId).isValid;
+  return parseEgyptianID(nationalId).valid;
 }
