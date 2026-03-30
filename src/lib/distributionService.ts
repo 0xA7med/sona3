@@ -45,8 +45,11 @@ export function calculateDistribution(
     let amount = 0;
     
     if (mode === 'school_stage') {
-      const stage = child.school_stage || detectSchoolStage(age);
-      const match = (campaign.stage_brackets || []).find(b => b.stage === stage);
+      const grade = age ? Math.max(1, Math.min(12, age - 5)) : 1;
+      const match = (campaign.stage_brackets || []).find(b => {
+        if (b.stage) return b.stage === (child.school_stage || detectSchoolStage(age));
+        return grade >= (b.fromGrade || 1) && grade <= (b.toGrade || 12);
+      });
       amount = match ? match.amount : 0;
     } else {
       const match = (campaign.age_brackets || []).find(b => age >= b.from && age <= b.to);
@@ -119,10 +122,22 @@ export function detectSchoolStage(age: number): SchoolStage {
 function calculateCommission(amount: number, rules: CommissionRule[]): number {
   if (!rules?.length) return 0;
   
-  // Sort rules by threshold ascending
-  const sortedRules = [...rules].sort((a, b) => a.threshold - b.threshold);
+  // Find rule using new range logic or legacy threshold
+  const rule = rules.find(r => {
+    if (r.threshold !== undefined) return amount <= r.threshold;
+    const fromA = r.fromAmount || 0;
+    const toA = r.toAmount || 999999;
+    return amount >= fromA && amount <= toA;
+  });
+
+  if (rule) return rule.fee;
+
+  // Fallback: if using legacy thresholds, use the last one as default if not found
+  const legacyRules = rules.filter(r => r.threshold !== undefined);
+  if (legacyRules.length > 0) {
+    const sortedLegacy = [...legacyRules].sort((a, b) => (a.threshold || 0) - (b.threshold || 0));
+    return sortedLegacy[sortedLegacy.length - 1].fee;
+  }
   
-  // Find the first rule where amount <= threshold
-  const rule = sortedRules.find(r => amount <= r.threshold);
-  return rule ? rule.fee : (sortedRules[sortedRules.length - 1]?.fee || 0);
+  return 0;
 }
