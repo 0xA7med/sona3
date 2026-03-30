@@ -3,7 +3,8 @@ import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
 import { 
   LogOut, User, Phone, MapPin, Shield, Calendar, 
-  CheckCircle, Clock, Heart, RefreshCw, Save, Edit2, X
+  CheckCircle, Clock, Heart, RefreshCw, Save, Edit2, X,
+  ChevronLeft, Award, Zap, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '../components/Toast';
@@ -111,207 +112,333 @@ export default function Profile() {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.1 }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', damping: 25, stiffness: 200 } }
+  };
+
   return (
-    <div className="page-content">
-      {/* Header */}
-      <div className="page-header" style={{ marginBottom: '2rem' }}>
-        <div>
-          <h1 className="page-title">ملفي الشخصي</h1>
-          <p className="page-subtitle">إحصائيات الأداء والبيانات الشخصية</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <div className="page-content" style={{ padding: 0, overflowX: 'hidden' }}>
+      {/* Premium Hero Header */}
+      <div style={{ 
+        position: 'relative', 
+        height: '240px', 
+        background: 'linear-gradient(160deg, #032a1e 0%, #074b36 100%)',
+        padding: '2rem 1.5rem',
+        color: 'white',
+        overflow: 'hidden'
+      }}>
+        {/* Animated backdrop elements */}
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], opacity: [0.05, 0.12, 0.05] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          style={{ 
+            position: 'absolute', top: -50, right: -50, fontSize: '180px', pointerEvents: 'none',
+            filter: 'blur(10px)'
+          }}
+        >
+          🌙
+        </motion.div>
+        
+        <div style={{ position: 'relative', z-index: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <motion.h1 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '0.5rem', letterSpacing: '-1px' }}
+            >
+              ملفي الشخصي
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}
+            >
+              مرحباً بك مجدداً في منظومة صناع السعادة
+            </motion.p>
+          </div>
+          
           <button 
-            className="btn btn-ghost btn-sm" 
+            className="btn btn-ghost" 
             onClick={handleRefreshIdentity}
             disabled={loading}
-            title="تحديث البيانات من السيرفر"
+            style={{ 
+              background: 'rgba(255,255,255,0.1)', 
+              border: '1px solid rgba(255,255,255,0.2)', 
+              color: 'white',
+              borderRadius: '50%',
+              width: '40px', height: '40px',
+              padding: 0
+            }}
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
-      </div>
 
-      <div className="dashboard-grid stagger">
-        {/* Profile Card */}
+        {/* Floating Identity Card */}
         <motion.div 
-          className="card" 
-          style={{ gridColumn: 'span 12', padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          className="glass-profile"
+          style={{ 
+            position: 'absolute', bottom: -60, left: '1.5rem', right: '1.5rem', 
+            padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem',
+            zIndex: 10
+          }}
         >
-          <div style={{ 
-            width: 80, height: 80, borderRadius: '24px', 
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0
-          }}>
-            <User size={40} />
+          <div style={{ position: 'relative' }}>
+            <div style={{ 
+              width: 75, height: 75, borderRadius: '22px', 
+              background: 'linear-gradient(45deg, var(--gold) 0%, var(--gold-light) 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-dark)',
+              boxShadow: '0 8px 20px rgba(212,175,55,0.4)',
+              border: '3px solid white'
+            }}>
+              <User size={38} />
+            </div>
+            <div style={{ 
+              position: 'absolute', bottom: -5, right: -5, 
+              width: 28, height: 28, borderRadius: '50%', background: '#10b981',
+              border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
+            }}>
+              <Zap size={14} fill="currentColor" />
+            </div>
           </div>
+          
           <div style={{ flex: 1 }}>
             {isEditing ? (
               <input 
                 className="input" 
                 value={form.full_name} 
                 onChange={e => setForm({...form, full_name: e.target.value})}
-                style={{ fontSize: '1.2rem', fontWeight: 800, padding: '4px 8px', marginBottom: '8px' }}
+                style={{ background: 'white', padding: '6px 12px', borderRadius: '10px' }}
               />
             ) : (
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '0.25rem' }}>{profile?.full_name}</h2>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.4rem', color: 'var(--primary-dark)' }}>
+                {profile?.full_name}
+              </h2>
             )}
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span className={`badge ${profile?.role === 'admin' ? 'badge-in-progress' : 'badge-gold'}`}>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <span style={{ 
+                background: profile?.role === 'admin' ? '#eff6ff' : '#fef9c3', 
+                color: profile?.role === 'admin' ? '#1e40af' : '#854d0e',
+                fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: '8px'
+              }}>
                 {profile?.role === 'admin' ? 'مدير نظام' : 'متطوع ميداني'}
               </span>
-              <span className="badge" style={{ background: 'var(--gray-100)', color: 'var(--gray-700)' }}>
-                {profile?.is_active ? 'نشط حالياً' : 'غير نشط'}
+              <span style={{ 
+                background: '#f1f5f9', color: '#475569',
+                fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '8px'
+              }}>
+                 {profile?.id.substring(0, 8).toUpperCase()}
               </span>
             </div>
           </div>
+          
           <button 
-            className="btn btn-ghost btn-sm" 
+            className="btn" 
             onClick={() => setIsEditing(!isEditing)}
-            style={{ alignSelf: 'flex-start' }}
+            style={{ 
+              background: isEditing ? '#f3f4f6' : 'var(--primary-light)', 
+              color: 'var(--primary)',
+              borderRadius: '12px', width: 40, height: 40, padding: 0
+            }}
           >
             {isEditing ? <X size={18} /> : <Edit2 size={18} />}
           </button>
         </motion.div>
+      </div>
 
-        {/* Stats Grid */}
-        {[
-          { label: 'إجمالي الحالات', value: stats.total,     icon: Heart,       color: 'var(--primary)',      bg: 'var(--blue-light)' },
-          { label: 'مهام مكتملة',    value: stats.completed, icon: CheckCircle, color: 'var(--green-light)',   bg: 'var(--green-light-bg)' },
-          { label: 'حالات قيد العمل', value: stats.active,    icon: Clock,       color: 'var(--gold)',      bg: 'var(--gold-bg)' },
-        ].map((s, i) => (
-          <motion.div 
-            key={s.label}
-            className="stat-card"
-            style={{ gridColumn: 'span 4' }}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 + i * 0.1 }}
-          >
-            <div style={{ padding: '0.5rem', background: 'var(--gray-50)', borderRadius: '12px', color: s.color }}>
-              <s.icon size={24} />
+      <motion.div 
+        className="container" 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        style={{ padding: '80px 1.5rem 2rem' }}
+      >
+        {/* Stats Grid - Premium Version */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+          {[
+            { label: 'إجمالي الحالات', value: stats.total,     icon: Heart,       color: '#3b82f6' },
+            { label: 'مهام مكتملة',    value: stats.completed, icon: CheckCircle, color: '#10b981' },
+            { label: 'قيد العمل',      value: stats.active,    icon: Clock,       color: '#f59e0b' },
+          ].map((s, i) => (
+            <motion.div 
+              key={s.label}
+              variants={cardVariants}
+              className="stat-card-premium"
+            >
+              <div style={{ 
+                width: '44px', height: '44px', borderRadius: '14px', 
+                background: s.color + '15', color: s.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '0.5rem'
+              }}>
+                <s.icon size={24} />
+              </div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 950, color: 'var(--primary-dark)', lineHeight: 1 }}>
+                {loading ? '...' : s.value}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                {s.label}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Personal Details Card */}
+        <motion.div 
+          variants={cardVariants}
+          className="card"
+          style={{ padding: '1.5rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', borderRadius: '24px' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Shield size={20} />
             </div>
             <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--primary-dark)' }}>{loading ? '...' : s.value}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{s.label}</div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>بيانات الشخصية</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>معلومات التواصل والمنطقه المسجله</p>
             </div>
-          </motion.div>
-        ))}
-
-        {/* Personal Info Edit */}
-        <motion.div 
-          className="card" 
-          style={{ gridColumn: 'span 12', padding: '1.5rem' }}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Shield size={18} color="var(--primary)" />
-              بيانات التواصل والمنطقة
-            </h3>
           </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            <div className="info-group">
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>رقم الهاتف</label>
-              {isEditing ? (
-                <input 
-                  className="input" 
-                  value={form.phone} 
-                  onChange={e => setForm({...form, phone: e.target.value})}
-                  placeholder="01xxxxxxxxx"
-                />
-              ) : (
-                <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Phone size={14} color="var(--gray-400)" />
-                  {profile?.phone || 'غير مسجل'}
-                </div>
-              )}
+
+          <div style={{ display: 'grid', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '10px', background: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Phone size={18} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>رقم الهاتف</p>
+                {isEditing ? (
+                  <input 
+                    className="form-input" 
+                    value={form.phone} 
+                    style={{ padding: '4px 0', border: 'none', borderBottom: '2px solid var(--primary)', borderRadius: 0 }}
+                    onChange={e => setForm({...form, phone: e.target.value})}
+                  />
+                ) : (
+                  <p style={{ fontWeight: 800, fontSize: '1rem' }}>{profile?.phone || 'غير مسجل'}</p>
+                )}
+              </div>
             </div>
-            <div className="info-group">
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>منطقة العمل</label>
-              {isEditing ? (
-                <input 
-                  className="input" 
-                  value={form.zone} 
-                  onChange={e => setForm({...form, zone: e.target.value})}
-                  placeholder="القاهرة، الجيزة..."
-                />
-              ) : (
-                <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <MapPin size={14} color="var(--gray-400)" />
-                  {profile?.zone || 'غير محددة'}
-                </div>
-              )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '10px', background: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MapPin size={18} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>منطقة العمل</p>
+                {isEditing ? (
+                  <input 
+                    className="form-input" 
+                    value={form.zone} 
+                    style={{ padding: '4px 0', border: 'none', borderBottom: '2px solid var(--primary)', borderRadius: 0 }}
+                    onChange={e => setForm({...form, zone: e.target.value})}
+                  />
+                ) : (
+                  <p style={{ fontWeight: 800, fontSize: '1rem' }}>{profile?.zone || 'غير محددة'}</p>
+                )}
+              </div>
             </div>
-            <div className="info-group">
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>تاريخ الانضمام</label>
-              <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Calendar size={14} color="var(--gray-400)" />
-                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('ar-EG') : '---'}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '10px', background: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Calendar size={18} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>تاريخ الانضمام</p>
+                <p style={{ fontWeight: 800, fontSize: '1rem' }}>
+                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) : '---'}
+                </p>
               </div>
             </div>
           </div>
-          
+
           <AnimatePresence>
             {isEditing && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--gray-100)' }}
+                style={{ marginTop: '1.5rem' }}
               >
                 <button 
                   className="btn btn-primary btn-full"
                   disabled={saving}
                   onClick={handleUpdateProfile}
+                  style={{ borderRadius: '14px', height: '50px' }}
                 >
-                  {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
-                  حفظ التعديلات
+                  {saving ? <RefreshCw size={20} className="animate-spin" /> : <Save size={20} />}
+                  حفظ التعديلات الجديدة
                 </button>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
 
-        {/* Admin System Management - Consolidated to keep nav at 5 items */}
+        {/* Levels / Badges Placeholder - Extra detail for "Premium" feel */}
+        <motion.div 
+          variants={cardVariants}
+          style={{ 
+            marginTop: '1.5rem', padding: '1.25rem', borderRadius: '24px', 
+            background: 'linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%)',
+            display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(0,0,0,0.03)'
+          }}
+        >
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+            <Award size={24} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 800 }}>المستوى الفضي</h4>
+            <div style={{ height: 6, background: 'rgba(0,0,0,0.05)', borderRadius: 3, marginTop: 6, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '65%', background: '#d4af37' }} />
+            </div>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 6 }}>أنجز 5 مهام إضافية للوصول للمستوى الذهبي 🏆</p>
+          </div>
+        </motion.div>
+
+        {/* Admin System Management */}
         {profile?.role === 'admin' && (
           <motion.div 
+            variants={cardVariants}
             className="card"
             style={{ 
-               gridColumn: 'span 12', padding: '1.5rem', marginTop: '1rem',
-               background: 'linear-gradient(135deg, var(--primary-light) 0%, #edfcf5 100%)', 
-               border: '1px solid var(--primary-border)', display: 'flex', 
-               justifyContent: 'space-between', alignItems: 'center',
-               borderRadius: '24px'
+               padding: '1.5rem', marginTop: '1.5rem',
+               background: 'linear-gradient(135deg, #16302a 0%, #032a1e 100%)', 
+               color: 'white', borderRadius: '24px', border: 'none'
             }}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
           >
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                 <Shield size={20} /> لوحة تحكم المنظومة
-              </h3>
-              <p style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '0.25rem' }}>إعدادات الحسابات، قواعد التوزيع، والخيارات التقنية المتقدمة.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Star size={24} color="var(--gold)" fill="var(--gold)" />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>إدارة المنظومة</h3>
+               </div>
+               <button className="btn btn-sm" style={{ background: 'var(--gold)', color: 'black', borderRadius: '10px' }} onClick={() => navigate('/admin/settings')}>
+                 دخول الإعدادات
+               </button>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={() => navigate('/admin/settings')}>
-              إدارة الإعدادات
-            </button>
+            <p style={{ fontSize: '0.8rem', opacity: 0.8 }}>أنت تملك صلاحيات إدارة المنظومة بالكامل، يرجى التعامل بحذر مع الإعدادات المتقدمة.</p>
           </motion.div>
         )}
 
-        <div style={{ gridColumn: 'span 12', marginTop: '1rem' }}>
+        <div style={{ marginTop: '2rem' }}>
           <button 
-            className="btn btn-outline btn-full"
-            style={{ color: '#ef4444', borderColor: '#fee2e2', background: '#fff5f5' }}
+            className="btn"
+            style={{ color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', width: '100%', borderRadius: '16px', height: '54px' }}
             onClick={() => setIsLogoutModalOpen(true)}
           >
-            <LogOut size={18} />
-            تسجيل الخروج من النظام
+            <LogOut size={20} />
+            تسجيل الخروج الآمن
           </button>
         </div>
 
@@ -323,7 +450,7 @@ export default function Profile() {
           message="هل أنت متأكد أنك تريد مغادرة النظام حالياً؟"
           type="danger"
         />
-      </div>
+      </motion.div>
     </div>
   );
 }

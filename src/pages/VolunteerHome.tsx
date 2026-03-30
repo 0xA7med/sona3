@@ -1,16 +1,17 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, CheckCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle, ArrowLeft, Calendar, Clock, Coins, ShoppingBag, Heart, Target, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
 import FamilyCard from '../components/FamilyCard';
 import FamilyDetail from '../components/FamilyDetail';
-import type { CaseAssignment, CaseLock, AssignmentStatus } from '../types';
+import type { CaseAssignment, CaseLock, AssignmentStatus, Campaign, CampaignType } from '../types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useOfflineStore } from '../store/offlineStore';
 
 type FilterTab = 'all' | 'pending' | 'no_answer' | 'completed';
+type ViewState = 'selection' | 'tasks';
 
 const TABS: { key: FilterTab; label: string; emoji: string }[] = [
   { key: 'all',       label: 'الكل',           emoji: '📋' },
@@ -19,16 +20,27 @@ const TABS: { key: FilterTab; label: string; emoji: string }[] = [
   { key: 'completed', label: 'مكتملة',          emoji: '✅' },
 ];
 
+const TYPE_CONFIG: Record<CampaignType, { label: string; icon: any; color: string; bg: string }> = {
+  financial:       { label: 'تحويل مالي', icon: Coins,       color: '#059664', bg: 'rgba(5, 150, 100, 0.1)' },
+  food_basket:     { label: 'كرتونة طعام', icon: ShoppingBag, color: '#d97706', bg: 'rgba(217, 119, 6, 0.1)' },
+  clothing:        { label: 'كسوة / ملابس', icon: Heart,       color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.1)' },
+  school_supplies: { label: 'أدوات مدرسية', icon: Target,      color: '#2563eb', bg: 'rgba(37, 99, 235, 0.1)' },
+  other:           { label: 'عام / أخرى',  icon: Info,       color: '#64748b', bg: 'rgba(100, 116, 139, 0.1)' },
+};
+
 export default function VolunteerHome() {
   const { profile } = useAuthStore();
   const { addToSyncQueue, myAssignments, setMyAssignments } = useOfflineStore();
+  
+  const [view, setView] = useState<ViewState>('selection');
+  const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
+  const [selectedCamp, setSelectedCamp] = useState<Campaign | null>(null);
   const [globalAssignments, setGlobalAssignments] = useState<CaseAssignment[]>([]);
   const [locks,       setLocks]       = useState<Map<string, CaseLock>>(new Map());
   const [search,      setSearch]      = useState('');
   const [tab,         setTab]         = useState<FilterTab>('pending');
   const [loading,     setLoading]     = useState(true);
   const [isOffline,   setIsOffline]   = useState(!navigator.onLine);
-  const [activeCamp,  setActiveCamp]  = useState<any>(null);
   const [selectedAsgn, setSelectedAsgn] = useState<CaseAssignment | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   
@@ -42,31 +54,31 @@ export default function VolunteerHome() {
     };
   }, []);
 
-  /* ── Fetch assignments ─────────────────────────────────── */
-  const fetchCampaign = useCallback(async () => {
+  /* ── Fetch campaigns ───────────────────────────────────── */
+  const fetchCampaigns = useCallback(async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
         .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('created_at', { ascending: false });
       
-      if (!error && data) {
-        setActiveCamp(data);
-      }
+      if (error) throw error;
+      setAllCampaigns(data || []);
     } catch (err) {
-      console.error('Error fetching campaign:', err);
+      console.error('Error fetching campaigns:', err);
+      toast('حدث خطأ في تحميل الحملات', 'error');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const fetchAssignments = useCallback(async () => {
+  /* ── Fetch assignments for a specific campaign ─────────── */
+  const fetchAssignments = useCallback(async (campaignId: string) => {
     if (!profile) return;
     setLoading(true);
     try {
-      await fetchCampaign(); // Load campaign first
-      
       const { data, error } = await supabase
         .from('case_assignments')
         .select(`
@@ -81,6 +93,7 @@ export default function VolunteerHome() {
           volunteer:profiles(full_name),
           campaign:campaigns(*)
         `)
+        .eq('campaign_id', campaignId)
         .order('status', { ascending: true });
 
       if (error) throw error;
@@ -94,19 +107,17 @@ export default function VolunteerHome() {
 
       setGlobalAssignments(enriched as CaseAssignment[]);
       
-      // Update persistent offline cache for "My Tasks"
       const mine = (enriched as CaseAssignment[]).filter(a => a.volunteer_id === profile.id);
       setMyAssignments(mine);
 
     } catch (err) {
       console.error(err);
-      toast('حدث خطأ في تحميل المهام، سيتم العرض من الذاكرة الحالية', 'warning');
+      toast('حدث خطأ في تحميل المهام', 'warning');
     } finally {
       setLoading(false);
     }
-  }, [profile, fetchCampaign, setMyAssignments]);
+  }, [profile, setMyAssignments]);
 
-  /* ── Fetch locks snapshot ──────────────────────────────── */
   const fetchLocks = useCallback(async () => {
     const { data } = await supabase.from('case_locks').select('*');
     const map = new Map<string, CaseLock>();
@@ -114,11 +125,9 @@ export default function VolunteerHome() {
     setLocks(map);
   }, []);
 
-  /* ── Realtime subscription for locks ──────────────────── */
   useEffect(() => {
     if (!profile) return;
-
-    fetchAssignments();
+    fetchCampaigns();
     fetchLocks();
 
     const ch = supabase
@@ -135,9 +144,6 @@ export default function VolunteerHome() {
           } else {
             const lock = (payload.new as CaseLock);
             next.set(lock.family_id, lock);
-            if (lock.locked_by !== profile.id) {
-              toast(`🔒 ${lock.locked_by_name} يعمل على حالة الآن`, 'info', 2500);
-            }
           }
           return next;
         });
@@ -146,17 +152,14 @@ export default function VolunteerHome() {
 
     channelRef.current = ch;
     return () => { ch.unsubscribe(); };
-  }, [profile, fetchAssignments, fetchLocks]);
+  }, [profile, fetchCampaigns, fetchLocks]);
 
-  /* ── Cleanup own locks on unmount ──────────────────────── */
   useEffect(() => {
-    return () => {
-      // In this version, we handle locks via timeouts or manual release on close
-      // Global assignment is the primary locking mechanism
-    };
-  }, []);
+    if (selectedCamp) {
+      fetchAssignments(selectedCamp.id);
+    }
+  }, [selectedCamp, fetchAssignments]);
 
-  /* ── Lock / unlock helpers ─────────────────────────────── */
   const lockCase = async (familyId: string) => {
     if (!profile || isOffline) return;
     try {
@@ -176,27 +179,26 @@ export default function VolunteerHome() {
     await supabase.from('case_locks').delete().eq('family_id', familyId);
   };
 
-  /* ── Quick Action handler ──────────────────────────────── */
   const handleAction = async (
     action: 'no_answer' | 'unreachable' | 'completed' | 'view' | 'claim',
     assignmentId: string
   ) => {
-    if (!profile) return;
+    if (!profile || !selectedCamp) return;
 
     if (action === 'claim') {
       if (isOffline) {
-        toast('المعذرة، يجب أن تتوفر إنترنت للقيام بالحجز لأول مرة', 'warning');
+        toast('المعذرة، يجب أن تتوفر إنترنت للقيام بالحجز', 'warning');
         return;
       }
       try {
         const { error } = await supabase.rpc('reserve_single_case', {
            p_volunteer_id: profile.id,
            p_family_id: globalAssignments.find(a => a.id === assignmentId)?.family_id,
-           p_campaign_id: activeCamp?.id
+           p_campaign_id: selectedCamp.id
         });
         if (error) throw error;
         toast('✅ تم حجز الحالة لك بنجاح', 'success');
-        fetchAssignments();
+        fetchAssignments(selectedCamp.id);
       } catch (err) {
         toast('❌ فشل الحجز، قد تكون محجوزة بالفعل', 'error');
       }
@@ -223,14 +225,12 @@ export default function VolunteerHome() {
     const newStatus = statusMap[action];
     if (!newStatus) return;
 
-    // Build the payload
     const updatePayload = {
       id: assignmentId,
       status: newStatus,
       ...(newStatus === 'completed' ? { completed_at: new Date().toISOString() } : {}),
     };
 
-    // Build the history payload
     const historyPayload = {
       family_id: familyId,
       user_id:   profile.id,
@@ -245,47 +245,53 @@ export default function VolunteerHome() {
     };
 
     if (isOffline) {
-      // Add to offline sync queue
       addToSyncQueue({ type: 'UPDATE_STATUS', payload: updatePayload });
       addToSyncQueue({ type: 'LOG_TRANSFER', payload: historyPayload });
-      
-      // Update local state immediately for UX
       const updated = (prev: CaseAssignment[]) => prev.map(a => a.id === assignmentId ? { ...a, status: newStatus as AssignmentStatus } : a);
       setGlobalAssignments(updated);
       setMyAssignments(updated(myAssignments));
-      
       toast('💾 تم الحفظ محلياً - سيتم الرفع فور توفر نت', 'info');
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('case_assignments')
-        .update(updatePayload)
-        .eq('id', assignmentId);
-
+      const { error } = await supabase.from('case_assignments').update(updatePayload).eq('id', assignmentId);
       if (error) throw error;
-
       await supabase.from('case_history').insert(historyPayload);
       await unlockCase(familyId);
-
-      fetchAssignments();
+      fetchAssignments(selectedCamp.id);
       toast('✅ تم التزامن بنجاح', 'success');
-
     } catch (err) {
       console.error(err);
-      toast('حدث خطأ أثناء التحديث، حاول مجدداً', 'error');
+      toast('حدث خطأ أثناء التحديث', 'error');
     }
   };
 
-  /* ── Filter logic ──────────────────────────────────────── */
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return 'غير محدد';
+    return new Date(dateStr).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' });
+  };
+
+  const handleBatchReserve = async () => {
+    if (!profile || isOffline || !selectedCamp) return;
+    try {
+       const { data, error } = await supabase.rpc('reserve_case_batch', {
+          p_volunteer_id: profile.id,
+          p_campaign_id: selectedCamp.id,
+          p_limit: 10
+       });
+       if (error) throw error;
+       toast(`📦 تم حجز ${data?.length || 0} حالات جديدة لك بنجاح`, 'success');
+       fetchAssignments(selectedCamp.id);
+    } catch (err) {
+      toast('❌ فشل حجز الدفعة، تأكد من توفر حالات شاغرة', 'error');
+    }
+  };
+
   const assignmentsToDisplay = isOffline ? myAssignments : globalAssignments;
 
   const filtered = assignmentsToDisplay.filter((a) => {
-    const matchTab = tab === 'all' ? true
-      : tab === 'pending'   ? ['pending', 'in_progress'].includes(a.status)
-      : a.status === tab;
-
+    const matchTab = tab === 'all' ? true : tab === 'pending' ? ['pending', 'in_progress'].includes(a.status) : a.status === tab;
     const q = search.trim().toLowerCase();
     const matchSearch = !q || (
       a.family?.mother_name?.toLowerCase().includes(q)  ||
@@ -293,199 +299,157 @@ export default function VolunteerHome() {
       a.family?.sequential_id?.toLowerCase().includes(q) ||
       a.family?.governorate?.includes(q)
     );
-
     return matchTab && matchSearch;
   });
 
-  // Sort: My tasks first, then by priority
   const sorted = [...filtered].sort((a, b) => {
     if (a.volunteer_id === profile?.id && b.volunteer_id !== profile?.id) return -1;
     if (a.volunteer_id !== profile?.id && b.volunteer_id === profile?.id) return 1;
-    return (b.family?.priority_score ?? 0) - (a.family?.priority_score ?? 0)
+    return (b.family?.priority_score ?? 0) - (a.family?.priority_score ?? 0);
   });
 
   const completedCount = assignmentsToDisplay.filter(a => a.status === 'completed').length;
   const pendingCount   = assignmentsToDisplay.filter(a => ['pending', 'in_progress'].includes(a.status)).length;
 
-  const handleBatchReserve = async () => {
-    if (!profile || isOffline || !activeCamp) return;
-    try {
-       const { data, error } = await supabase.rpc('reserve_case_batch', {
-          p_volunteer_id: profile.id,
-          p_campaign_id: activeCamp.id,
-          p_limit: 10
-       });
-       if (error) throw error;
-       toast(`📦 تم حجز ${data?.length || 0} حالات جديدة لك بنجاح`, 'success');
-       fetchAssignments();
-    } catch (err) {
-      toast('❌ فشل حجز الدفعة، تأكد من توفر حالات شاغرة', 'error');
-    }
-  };
+  if (view === 'selection') {
+    return (
+      <div className="screen active p-md">
+        <header className="page-header" style={{ marginBottom: '2rem' }}>
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            <h1 className="page-title">مرحباً، {profile?.full_name?.split(' ')[0]} 👋</h1>
+            <p className="page-subtitle">اختر الحملة التي تود العمل عليها اليوم</p>
+          </motion.div>
+          <button className="btn-ghost" onClick={fetchCampaigns} style={{ padding: '10px' }}>
+            <RefreshCw size={20} className={loading && allCampaigns.length === 0 ? 'animate-spin' : ''} />
+          </button>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <AnimatePresence mode="popLayout">
+            {allCampaigns.length === 0 && !loading ? (
+              <div className="empty-state col-span-full">
+                <div className="empty-state-icon">🌵</div>
+                <p>لا توجد حملات نشطة حالياً</p>
+              </div>
+            ) : (
+              allCampaigns.map((camp, idx) => {
+                const Config = TYPE_CONFIG[camp.campaign_type] || TYPE_CONFIG.other;
+                return (
+                  <motion.div
+                    key={camp.id}
+                    className="campaign-card-premium clickable"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    onClick={() => {
+                      setSelectedCamp(camp);
+                      setView('tasks');
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div className="campaign-type-icon" style={{ background: Config.bg, color: Config.color, marginBottom: 0 }}>
+                        <Config.icon size={24} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                        <Calendar size={12} />
+                        {formatDate(camp.start_date)} - {formatDate(camp.end_date)}
+                      </div>
+                    </div>
+                    <h3 style={{ fontWeight: 800, fontSize: '1.2rem', marginBottom: '0.5rem' }}>{camp.name}</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '1rem', flex: 1 }}>
+                      {camp.description || 'حملة نشطة تهدف لخدمة الأسر المستحقة.'}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>ابدأ العمل الآن ←</span>
+                      <div className="badge badge-in-progress" style={{ fontSize: '0.65rem' }}>نشط</div>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="screen active" style={{ display: 'block' }}>
-      {/* Loading Skeleton Over Header */}
-      {loading && !activeCamp && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div className="skeleton" style={{ height: 160, borderRadius: 'var(--radius-lg)' }} />
-        </div>
-      )}
-
-      {/* Campaign Banner */}
       <section className="section">
-        <motion.div
-          className="campaign-banner"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-        >
+        <motion.div className="campaign-banner" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="banner-icon-row">
-            <div className="banner-icon-badge">
-              {isOffline ? '📴 وضع الأوفلاين نشط' : `🎯 الحالات المتاحة: ${globalAssignments.length}`}
-            </div>
+            <button 
+              className="btn-ghost" 
+              style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 800 }}
+              onClick={() => {
+                setView('selection');
+                setSelectedCamp(null);
+              }}
+            >
+              <ArrowLeft size={18} />
+              كل الحملات
+            </button>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {!isOffline && (
-                <button 
-                  className="btn btn-sm" 
-                  style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800 }}
-                  onClick={handleBatchReserve}
-                >
+                <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '12px' }} onClick={handleBatchReserve}>
                   📦 حجز 10 حالات
                 </button>
               )}
-              <button
-                className="btn-ghost"
-                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onClick={fetchAssignments}
-                disabled={isOffline}
-                title="تحديث"
-              >
+              <button className="btn-ghost" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => fetchAssignments(selectedCamp!.id)} disabled={isOffline}>
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               </button>
             </div>
           </div>
-          
-          <div className="banner-title">
-            {activeCamp?.name || (loading ? 'جارٍ تحميل الحملة...' : 'لا توجد حملة نشطة')}
-          </div>
+          <div className="banner-title">{selectedCamp?.name}</div>
           <div className="banner-date">بمشاركة المتطوعة: {profile?.full_name}</div>
-          
           <div className="progress-wrap mt-md">
             <div className="progress-labels">
-              <span>{isOffline ? 'المهام المحفوظة بجهازك' : 'نسبة الإنجاز'}</span>
+              <span>{isOffline ? 'المهام المحفوظة بجهازك' : 'نسبة الإنجاز بالحملة'}</span>
               <span>{assignmentsToDisplay.length ? Math.round((completedCount / assignmentsToDisplay.length) * 100) : 0}%</span>
             </div>
             <div className="progress-track">
-              <div 
-                className="progress-fill" 
-                style={{ width: `${assignmentsToDisplay.length ? (completedCount / assignmentsToDisplay.length) * 100 : 0}%` }}
-              ></div>
-            </div>
-            <div style={{ fontSize: '0.75rem', marginTop: '6px', opacity: 0.8 }}>
-              {completedCount} مكتملة من أصل {assignmentsToDisplay.length}
+              <div className="progress-fill" style={{ width: `${assignmentsToDisplay.length ? (completedCount / assignmentsToDisplay.length) * 100 : 0}%` }}></div>
             </div>
           </div>
         </motion.div>
       </section>
 
-      {/* Search */}
-      <section className="section" aria-label="بحث وفلترة">
+      <section className="section">
         <div className="search-box mb-sm">
           <span className="search-box-icon">🔍</span>
-          <input
-            type="search"
-            placeholder="ابحث بالاسم، الهاتف، أو رقم التسلسل..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '12px 40px 12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--white)', outline: 'none' }}
-          />
+          <input type="search" placeholder="ابحث بالاسم، الهاتف..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '12px 40px 12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--white)' }} />
         </div>
-
-        {/* Filter Chips */}
-        <div className="filter-bar mb-md" role="group" aria-label="فلترة القائمة">
+        <div className="filter-bar mb-md">
           {TABS.map(t => {
-            const count = t.key === 'all' ? assignmentsToDisplay.length
-              : t.key === 'pending' ? pendingCount
-              : assignmentsToDisplay.filter(a => a.status === t.key).length;
+            const count = t.key === 'all' ? assignmentsToDisplay.length : assignmentsToDisplay.filter(a => (t.key === 'pending' ? ['pending', 'in_progress'].includes(a.status) : a.status === t.key)).length;
             return (
-              <button
-                key={t.key}
-                className={`filter-chip ${tab === t.key ? 'active' : ''}`}
-                onClick={() => setTab(t.key)}
-              >
-                {t.label} {t.emoji}
-                {count > 0 && (
-                  <span style={{
-                    marginRight: '0.25rem',
-                    background: tab === t.key ? 'rgba(255,255,255,0.25)' : 'var(--primary-light)',
-                    color: tab === t.key ? 'white' : 'var(--primary)',
-                    padding: '2px 6px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 700,
-                  }}>
-                    {count}
-                  </span>
-                )}
+              <button key={t.key} className={`filter-chip ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
+                {t.label} 
+                {count > 0 && <span style={{ marginRight: '0.3rem', opacity: 0.8 }}>({count})</span>}
               </button>
             );
           })}
         </div>
       </section>
 
-      {/* Mothers List */}
-      <section className="section" id="mothers-list" aria-label="قائمة الأمهات">
+      <section className="section">
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {[1, 2, 3].map(i => <div key={i} style={{ height: 160, background: '#e2e8f0', borderRadius: '14px', animation: 'pulse 1.5s infinite' }} />)}
-          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>{[1, 2, 3].map(i => <div key={i} style={{ height: 160, background: '#e2e8f0', borderRadius: '14px', animation: 'pulse 1.5s infinite' }} />)}</div>
         ) : sorted.length === 0 ? (
-          <motion.div
-            className="empty-state"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--gray-600)' }}
-          >
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-              <CheckCircle size={48} style={{ margin: '0 auto', color: 'var(--green-light)' }} />
-            </div>
-            <p className="fw-700 text-lg">
-              {tab === 'completed' ? '🎉 لم تُكمل أي مهمة بعد' : 'لا توجد مهام في هذا القسم'}
-            </p>
-            <p className="text-sm mt-sm">
-              {search ? 'جرب بحثاً مختلفاً' : 'ستظهر هنا المهام المُسندة إليك'}
-            </p>
-          </motion.div>
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--gray-600)' }}>
+            <CheckCircle size={48} style={{ margin: '0 auto', color: 'var(--green-light)', marginBottom: '1rem' }} />
+            <p className="fw-700">لا توجد مهام حالياً</p>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <AnimatePresence mode="popLayout">
-              {sorted.map((asgn, i) => (
-                <FamilyCard
-                  key={asgn.id}
-                  assignment={asgn}
-                  lock={locks.get(asgn.family_id) ?? null}
-                  currentUserId={profile?.id}
-                  onAction={handleAction}
-                  showQuickActions={asgn.status !== 'completed'}
-                  index={i}
-                />
-              ))}
+              {sorted.map((asgn, i) => <FamilyCard key={asgn.id} assignment={asgn} lock={locks.get(asgn.family_id) ?? null} currentUserId={profile?.id} onAction={handleAction} showQuickActions={asgn.status !== 'completed'} index={i} />)}
             </AnimatePresence>
           </div>
         )}
       </section>
 
-      {/* Family Detail Overlay */}
-      {selectedAsgn && (
-        <FamilyDetail
-          isOpen={!!selectedAsgn}
-          assignment={selectedAsgn}
-          currentUserId={profile?.id}
-          onClose={async () => {
-             if (!isOffline) await unlockCase(selectedAsgn.family_id);
-             setSelectedAsgn(null);
-          }}
-          onAction={(action) => handleAction(action, selectedAsgn.id)}
-        />
-      )}
+      {selectedAsgn && <FamilyDetail isOpen={!!selectedAsgn} assignment={selectedAsgn} currentUserId={profile?.id} onClose={async () => { if (!isOffline) await unlockCase(selectedAsgn.family_id); setSelectedAsgn(null); }} onAction={(action) => handleAction(action, selectedAsgn.id)} />}
     </div>
   );
 }
