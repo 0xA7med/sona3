@@ -48,21 +48,23 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       const metaRole = user.app_metadata?.role || user.user_metadata?.role || 'volunteer';
       const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'متطوع جديد';
+      const phone = user.user_metadata?.phone || null;
+      const zone = user.user_metadata?.zone || null;
 
       try {
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
-          .insert([{ id: userId, full_name: fullName, role: metaRole }])
+          .insert([{ id: userId, full_name: fullName, role: metaRole, phone, zone }])
           .select()
           .single();
           
         if (!createError && newProfile) {
           set({ profile: newProfile });
         } else {
-          set({ profile: { id: userId, full_name: fullName, role: metaRole } });
+          set({ profile: { id: userId, full_name: fullName, role: metaRole, phone, zone } });
         }
       } catch (insertErr) {
-        set({ profile: { id: userId, full_name: fullName, role: metaRole } });
+        set({ profile: { id: userId, full_name: fullName, role: metaRole, phone, zone } });
       }
     } catch (err: any) {
       console.error('Critical error in loadProfile:', err.message || err);
@@ -99,9 +101,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
     });
 
-    if (data?.session && data?.user) {
-      set({ user: data.user });
-      await get().loadProfile(data.user.id);
+    if (data?.user) {
+      // Explicitly upsert the profile to guarantee that phone and zone are saved
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        full_name: fullName,
+        phone: phone || null,
+        zone: zone || null,
+        // Optional fields that trigger might need
+        is_active: false
+      }, { onConflict: 'id' });
+
+      if (data.session) {
+        set({ user: data.user });
+        await get().loadProfile(data.user.id);
+      }
     }
     
     return { data, error };

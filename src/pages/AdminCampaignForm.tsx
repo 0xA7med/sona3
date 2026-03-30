@@ -267,7 +267,7 @@ export default function AdminCampaignForm() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="form-group">
                 <label className="form-label">نوع الحملة</label>
                 <select className="form-select" value={type} onChange={e => setType(e.target.value as CampaignType)}>
@@ -312,7 +312,7 @@ export default function AdminCampaignForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="form-group">
                 <label className="form-label">تاريخ البدء</label>
                 <input 
@@ -388,76 +388,102 @@ export default function AdminCampaignForm() {
 
                   {distributionMode === 'age' ? (
                     <div className="bracket-list">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 style={{ fontSize: '0.9rem', fontWeight: 800 }}>توزيع مخصص للأعمار</h3>
-                        <button type="button" className="btn btn-ghost btn-xs" onClick={() => setAgeBrackets([...ageBrackets, { from: 0, to: 0, amount: 0 }])}>
-                          <Plus size={14} /> إضافة فئة
+                      <div className="flex justify-between items-center mb-6">
+                        <div>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-dark)' }}>شرائح الدعم المالي (بالسن)</h3>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>أضف الفئات العمرية والمبلغ المخصص لكل منها</p>
+                        </div>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => setAgeBrackets([...ageBrackets, { from: 0, to: 0, amount: 0 }])}>
+                          <Plus size={16} /> إضافة شريحة
                         </button>
                       </div>
-                      <div className="grid gap-3">
+                      <div className="flex flex-col gap-4">
                         {ageBrackets.map((b, i) => (
-                          <div key={i} className="bracket-card">
-                             <div className="bracket-inputs">
-                                <div className="form-group mb-0">
-                                  <label className="form-label-xs">من عمر</label>
-                                  <input type="number" className="form-input form-input-sm" value={b.from} onChange={e => {
-                                    const nb = [...ageBrackets]; nb[i].from = Number(e.target.value); setAgeBrackets(nb);
-                                  }} />
-                                </div>
-                                <div className="form-group mb-0">
-                                  <label className="form-label-xs">إلى عمر</label>
-                                  <input type="number" className="form-input form-input-sm" value={b.to} onChange={e => {
-                                    const nb = [...ageBrackets]; nb[i].to = Number(e.target.value); setAgeBrackets(nb);
-                                  }} />
-                                </div>
-                                <div className="form-group mb-0">
-                                  <label className="form-label-xs">المبلغ (ج.م)</label>
-                                  <input type="number" className="form-input form-input-sm" value={b.amount} onChange={e => {
+                          <div key={i} className="glass-card" style={{ padding: '1.25rem', position: 'relative', borderLeft: '4px solid var(--primary)' }}>
+                            <button type="button" className="btn btn-ghost text-error" 
+                              style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.1)', borderRadius: '8px' }}
+                              onClick={() => setAgeBrackets(ageBrackets.filter((_, idx) => idx !== i))}>
+                              ✕
+                            </button>
+                            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--primary)' }}>
+                              الشريحة #{i + 1}
+                            </h4>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                              <div className="form-group mb-0">
+                                <label className="form-label" style={{ fontSize: '0.75rem' }}>من عمر</label>
+                                <input type="number" className="form-input" value={b.from} onChange={e => {
+                                  const nb = [...ageBrackets]; nb[i].from = Number(e.target.value); setAgeBrackets(nb);
+                                }} />
+                              </div>
+                              <div className="form-group mb-0">
+                                <label className="form-label" style={{ fontSize: '0.75rem' }}>إلى عمر</label>
+                                <input type="number" className="form-input" value={b.to} onChange={e => {
+                                  const nb = [...ageBrackets]; nb[i].to = Number(e.target.value); setAgeBrackets(nb);
+                                }} />
+                              </div>
+                              <div className="form-group mb-0 col-span-2 lg:col-span-1">
+                                <label className="form-label" style={{ fontSize: '0.75rem' }}>المبلغ المخصص (ج.م)</label>
+                                <div style={{ position: 'relative' }}>
+                                  <input type="number" className="form-input" style={{ fontWeight: 'bold', color: 'var(--primary-dark)', paddingRight: '2.2rem' }} value={b.amount} onChange={e => {
                                     const nb = [...ageBrackets]; nb[i].amount = Number(e.target.value); setAgeBrackets(nb);
                                   }} />
+                                  <DollarSign size={16} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)' }} />
                                 </div>
-                             </div>
-                             <button type="button" className="btn btn-ghost btn-sm text-error" onClick={() => setAgeBrackets(ageBrackets.filter((_, idx) => idx !== i))}>✕</button>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   ) : (
                     <div className="bracket-list">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 style={{ fontSize: '0.9rem', fontWeight: 800 }}>توزيع مخصص للسنوات الدراسية</h3>
-                        <button type="button" className="btn btn-ghost btn-xs" onClick={() => setStageBrackets([...stageBrackets, { fromGrade: 1, toGrade: 6, amount: 0 }])}>
-                          <Plus size={14} /> إضافة مرحلة
+                      <div className="flex justify-between items-center mb-6">
+                        <div>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-dark)' }}>شرائح الدعم المالي (بالصف الدراسي)</h3>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>أضف المراحل الدراسية والمبلغ المخصص لكل منها</p>
+                        </div>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => setStageBrackets([...stageBrackets, { fromGrade: 1, toGrade: 6, amount: 0 }])}>
+                          <Plus size={16} /> إضافة شريحة
                         </button>
                       </div>
-                      <div className="grid gap-3">
+                      <div className="flex flex-col gap-4">
                         {stageBrackets.map((b, i) => (
-                          <div key={i} className="bracket-card">
-                             <div className="bracket-inputs">
-                                <div className="form-group mb-0">
-                                  <label className="form-label-xs">من الصف</label>
-                                  <select className="form-select form-select-sm" value={b.fromGrade || 1} onChange={e => {
-                                    const nb = [...stageBrackets]; nb[i].fromGrade = Number(e.target.value); delete nb[i].stage; setStageBrackets(nb);
-                                  }}>
-                                    {GRADES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-                                  </select>
-                                </div>
-                                <div className="form-group mb-0">
-                                  <label className="form-label-xs">إلى الصف</label>
-                                  <select className="form-select form-select-sm" value={b.toGrade || 12} onChange={e => {
-                                    const nb = [...stageBrackets]; nb[i].toGrade = Number(e.target.value); delete nb[i].stage; setStageBrackets(nb);
-                                  }}>
-                                    {GRADES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-                                  </select>
-                                </div>
-                                <div className="form-group mb-0">
-                                  <label className="form-label-xs">المبلغ (ج.م)</label>
-                                  <input type="number" className="form-input form-input-sm" value={b.amount} onChange={e => {
+                          <div key={i} className="glass-card" style={{ padding: '1.25rem', position: 'relative', borderLeft: '4px solid var(--primary)' }}>
+                            <button type="button" className="btn btn-ghost text-error" 
+                              style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.1)', borderRadius: '8px' }}
+                              onClick={() => setStageBrackets(stageBrackets.filter((_, idx) => idx !== i))}>
+                              ✕
+                            </button>
+                            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--primary)' }}>
+                              الشريحة #{i + 1}
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <div className="form-group mb-0">
+                                <label className="form-label" style={{ fontSize: '0.75rem' }}>من الصف الدراسي</label>
+                                <select className="form-select" value={b.fromGrade || 1} onChange={e => {
+                                  const nb = [...stageBrackets]; nb[i].fromGrade = Number(e.target.value); delete nb[i].stage; setStageBrackets(nb);
+                                }}>
+                                  {GRADES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                                </select>
+                              </div>
+                              <div className="form-group mb-0">
+                                <label className="form-label" style={{ fontSize: '0.75rem' }}>إلى الصف الدراسي</label>
+                                <select className="form-select" value={b.toGrade || 12} onChange={e => {
+                                  const nb = [...stageBrackets]; nb[i].toGrade = Number(e.target.value); delete nb[i].stage; setStageBrackets(nb);
+                                }}>
+                                  {GRADES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                                </select>
+                              </div>
+                              <div className="form-group mb-0 md:col-span-2 lg:col-span-1">
+                                <label className="form-label" style={{ fontSize: '0.75rem' }}>المبلغ المخصص (ج.م)</label>
+                                <div style={{ position: 'relative' }}>
+                                  <input type="number" className="form-input" style={{ fontWeight: 'bold', color: 'var(--primary-dark)', paddingRight: '2.2rem' }} value={b.amount} onChange={e => {
                                     const nb = [...stageBrackets]; nb[i].amount = Number(e.target.value); setStageBrackets(nb);
                                   }} />
+                                  <DollarSign size={16} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)' }} />
                                 </div>
-                             </div>
-                             <button type="button" className="btn btn-ghost btn-sm text-error" onClick={() => setStageBrackets(stageBrackets.filter((_, idx) => idx !== i))}>✕</button>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -466,38 +492,48 @@ export default function AdminCampaignForm() {
                 </div>
 
                 {/* Right Bank: Commission & Advice */}
-                <div className="glass-card" style={{ background: 'rgba(212,175,55,0.03)', border: '1px solid var(--gold-light)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                    <h3 style={{ fontSize: '0.9rem', fontWeight: 800 }}>رسوم التحويل</h3>
-                    <button type="button" className="btn btn-ghost btn-xs" onClick={() => setCommissionRules([...commissionRules, { fromAmount: 0, toAmount: 500, fee: 10 }])}>
-                      <Plus size={14} /> إضافة
+                <div className="glass-card" style={{ background: 'linear-gradient(180deg, rgba(212,175,55,0.05) 0%, rgba(212,175,55,0.01) 100%)', border: '1px solid var(--gold-light)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px dashed var(--gold-light)' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--gold)' }}>قواعد رسوم التحويل</h3>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>رسوم إضافية حسب إجمالي الأسرة</p>
+                    </div>
+                    <button type="button" className="btn btn-gold btn-sm" onClick={() => setCommissionRules([...commissionRules, { fromAmount: 0, toAmount: 500, fee: 10 }])}>
+                      <Plus size={16} /> إضافة
                     </button>
                   </div>
                   
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-4">
                     {commissionRules.map((r, i) => (
-                      <div key={i} className="bracket-card" style={{ padding: '0.75rem', flexWrap: 'wrap' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', width: '100%' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>من:</span>
-                            <input type="number" className="form-input form-input-sm w-full" value={r.fromAmount || 0} onChange={e => {
+                      <div key={i} className="glass-card" style={{ padding: '1.25rem', position: 'relative', borderLeft: '4px solid var(--gold)' }}>
+                        <button type="button" className="btn btn-ghost text-error" 
+                          style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.1)', borderRadius: '8px' }}
+                          onClick={() => setCommissionRules(commissionRules.filter((_, idx) => idx !== i))} disabled={commissionRules.length <= 1}>
+                          ✕
+                        </button>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--gold)' }}>
+                          القاعدة #{i + 1}
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="form-group mb-0">
+                            <label className="form-label" style={{ fontSize: '0.7rem' }}>إجمالي من (ج.م)</label>
+                            <input type="number" className="form-input" value={r.fromAmount || 0} onChange={e => {
                               const nr = [...commissionRules]; nr[i].fromAmount = Number(e.target.value); delete nr[i].threshold; setCommissionRules(nr);
                             }} />
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>إلى:</span>
-                            <input type="number" className="form-input form-input-sm w-full" value={r.toAmount || 99999} onChange={e => {
+                          <div className="form-group mb-0">
+                            <label className="form-label" style={{ fontSize: '0.7rem' }}>إجمالي إلى (ج.م)</label>
+                            <input type="number" className="form-input" value={r.toAmount || 99999} onChange={e => {
                               const nr = [...commissionRules]; nr[i].toAmount = Number(e.target.value); delete nr[i].threshold; setCommissionRules(nr);
                             }} />
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', gridColumn: '1 / -1' }}>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>الرسوم:</span>
-                            <input type="number" className="form-input form-input-sm w-full" value={r.fee} onChange={e => {
+                          <div className="form-group mb-0 col-span-2">
+                            <label className="form-label" style={{ fontSize: '0.7rem' }}>الرسوم المضافة (ج.م)</label>
+                            <input type="number" className="form-input font-bold" style={{ color: 'var(--orange)', background: 'rgba(230,126,34,0.05)' }} value={r.fee} onChange={e => {
                               const nr = [...commissionRules]; nr[i].fee = Number(e.target.value); setCommissionRules(nr);
                             }} />
                           </div>
                         </div>
-                        <button type="button" className="btn btn-ghost btn-sm text-error w-full mt-2" style={{ background: 'rgba(239,68,68,0.1)' }} onClick={() => setCommissionRules(commissionRules.filter((_, idx) => idx !== i))} disabled={commissionRules.length <= 1}>إزالة الرسوم</button>
                       </div>
                     ))}
                   </div>
@@ -535,45 +571,6 @@ export default function AdminCampaignForm() {
           align-items: center;
           gap: 0.5rem;
           color: var(--primary-dark);
-        }
-        .bracket-card {
-          background: white;
-          border-radius: 12px;
-          border: 1px solid var(--border-light);
-          padding: 1rem;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          flex-wrap: wrap; /* Fixed flex wrap for small screens */
-        }
-        .bracket-inputs {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 1rem;
-          flex: 1;
-          min-width: 250px;
-        }
-        .bracket-inputs-stage {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 1rem;
-          flex: 1;
-        }
-        .form-label-xs {
-          font-size: 0.65rem;
-          font-weight: 800;
-          color: var(--text-muted);
-          margin-bottom: 0.25rem;
-          display: block;
-        }
-        @media (max-width: 768px) {
-          .bracket-inputs, .bracket-inputs-stage {
-            grid-template-columns: 1fr;
-            gap: 0.5rem;
-          }
-          .bracket-card {
-            align-items: flex-start;
-          }
         }
       `}</style>
     </div>

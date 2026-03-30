@@ -727,12 +727,12 @@ h1, h2, h3, h4, h5 {
 
 /* Campaign Specific Premium Cards */
 .campaign-card-premium {
-  background: var(--surface);
+  background: linear-gradient(180deg, var(--surface) 0%, #fafcfb 100%);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(6, 147, 100, 0.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(6, 147, 100, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04), inset 0 2px 0 rgba(255, 255, 255, 0.8);
   padding: 1.75rem;
-  transition: all 0.4s var(--ease-out-expo);
+  transition: all 0.4s var(--ease-spring);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -740,27 +740,42 @@ h1, h2, h3, h4, h5 {
 }
 
 .campaign-card-premium:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 15px 35px rgba(6, 147, 100, 0.1);
-  border-color: rgba(6, 147, 100, 0.2);
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(6, 147, 100, 0.12), 0 8px 15px rgba(0, 0, 0, 0.04);
+  border-color: rgba(6, 147, 100, 0.25);
+}
+
+.campaign-card-premium::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--gold) 0%, var(--primary) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.campaign-card-premium:hover::before {
+  opacity: 1;
 }
 
 .campaign-card-premium::after {
   content: '';
   position: absolute;
   top: 0; right: 0;
-  width: 60px; height: 60px;
-  background: radial-gradient(circle at top right, rgba(6, 147, 100, 0.05), transparent 70%);
+  width: 120px; height: 120px;
+  background: radial-gradient(circle at top right, rgba(6, 147, 100, 0.06), transparent 70%);
   pointer-events: none;
 }
 
 .campaign-type-icon {
-  width: 48px; height: 48px;
-  border-radius: 14px;
+  width: 54px; height: 54px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  border: 2px solid white;
 }
 
 /* ================================================================

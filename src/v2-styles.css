@@ -454,32 +454,34 @@ body {
    HERO CAMPAIGN BANNER
    ============================================================ */
 .campaign-banner {
-  background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 55%, var(--green-light) 100%);
-  border-radius: var(--radius);
-  padding: var(--space-lg) var(--space-md);
+  background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+  border-radius: var(--radius-lg);
+  padding: calc(var(--space-lg) + 10px) var(--space-md);
   color: var(--white);
   margin-bottom: var(--space-md);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 15px 35px rgba(15,69,37,0.25), inset 0 2px 2px rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
-/* Decorative circles */
 .campaign-banner::before {
   content: '';
   position: absolute;
-  width: 120px; height: 120px;
+  width: 200px; height: 200px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.06);
-  top: -30px; left: -30px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  top: -60px; right: -40px;
+  pointer-events: none;
 }
 .campaign-banner::after {
   content: '';
   position: absolute;
-  width: 80px; height: 80px;
+  width: 150px; height: 150px;
   border-radius: 50%;
-  background: rgba(201,168,76,0.15);
-  bottom: -20px; left: 40px;
+  background: radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 70%);
+  bottom: -40px; left: -20px;
+  pointer-events: none;
 }
 
 .banner-icon-row {
@@ -536,8 +538,9 @@ body {
 .progress-fill {
   height: 100%;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--gold), var(--gold-light));
-  transition: width 0.6s ease;
+  background: linear-gradient(90deg, #d4af37, #ffe28a);
+  box-shadow: 0 0 10px rgba(212,175,55,0.5);
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
 }
 
