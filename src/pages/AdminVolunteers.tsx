@@ -87,7 +87,11 @@ export default function AdminVolunteers() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+        gap: '1.25rem' 
+      }}>
         {loading ? (
           [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 16 }} />)
         ) : filtered.length === 0 ? (
@@ -99,25 +103,37 @@ export default function AdminVolunteers() {
           filtered.map((v) => (
             <motion.div 
               key={v.id} 
-              className="card p-md"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRight: `4px solid ${v.is_active ? 'var(--primary)' : 'var(--error)'}` }}
+              className="card"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{ 
+                padding: '1.25rem',
+                display: 'flex', flexDirection: 'column', gap: '1.25rem',
+                borderTop: `4px solid ${v.is_active ? 'var(--primary)' : 'var(--error)'}`
+              }}
             >
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                <div style={{ 
+                  width: 50, height: 50, borderRadius: '14px', 
+                  background: 'var(--primary-light)', color: 'var(--primary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0
+                }}>
                   👤
                 </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <h3 style={{ fontWeight: 800 }}>{v.full_name}</h3>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <h3 style={{ fontWeight: 800, margin: 0, fontSize: '1.1rem' }}>{v.full_name}</h3>
                     {!v.is_active && <span className="badge badge-inactive">بانتظار التفعيل</span>}
                   </div>
-                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.2rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Phone size={14} /> {v.phone || 'غير متاح'}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Phone size={14} /> {v.phone || 'غير متاح'}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                        <DollarSign size={14} color="var(--primary)" /> 
-                       <b>
+                       الرصيد: 
+                       <b style={{ color: 'var(--primary-dark)' }}>
                          {(() => {
                            const transfers = (v as any).volunteer_fund_transfers?.reduce((acc: number, t: any) => acc + (t.amount || 0), 0) || 0;
                            const spent = (v as any).transactions?.reduce((acc: number, t: any) => acc + (t.total_amount || t.amount || 0), 0) || 0;
@@ -130,12 +146,15 @@ export default function AdminVolunteers() {
                 </div>
               </div>
 
+              <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
                 <button 
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-primary"
+                  style={{ borderRadius: '12px', width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}
                   onClick={() => navigate(`/admin/volunteers/${v.id}`)}
                 >
                   <Eye size={18} /> التفاصيل والتحكم
                 </button>
+              </div>
             </motion.div>
           ))
         )}

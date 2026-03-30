@@ -168,9 +168,10 @@ export default function AdminVolunteerLog() {
   return (
     <div className="page-content" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       {/* 1. Elite Integrated Header */}
-      <div className="card shadow-lg mb-8 overflow-hidden" style={{ border: 'none', borderRadius: '35px', background: 'white' }}>
+      <div className="card shadow-lg mb-8" style={{ border: 'none', borderRadius: '35px', background: 'white', position: 'relative' }}>
         <div style={{ 
-          height: '280px', 
+          height: 'auto', 
+          minHeight: '260px',
           background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)', 
           position: 'relative', 
           display: 'flex', 
@@ -178,7 +179,9 @@ export default function AdminVolunteerLog() {
           alignItems: 'center', 
           justifyContent: 'center',
           textAlign: 'center',
-          padding: '2rem'
+          padding: '4rem 2rem',
+          borderTopLeftRadius: '35px',
+          borderTopRightRadius: '35px'
         }}>
           {/* Internal Nav */}
           <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', left: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -188,11 +191,11 @@ export default function AdminVolunteerLog() {
              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 600 }}>إدارة شئون الأعضاء</div>
           </div>
 
-          <h1 style={{ color: 'white', fontSize: '3.2rem', fontWeight: 900, margin: 0, textShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+          <h1 style={{ color: 'white', fontSize: '2.8rem', fontWeight: 900, margin: 0, textShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
             {volunteer.full_name}
           </h1>
           
-          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', color: 'rgba(255,255,255,0.9)', fontWeight: 700, fontSize: '0.95rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', color: 'rgba(255,255,255,0.9)', fontWeight: 700, fontSize: '0.95rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Phone size={16} /> <span>{volunteer.phone || 'بدون هاتف'}</span>
             </div>
@@ -201,7 +204,7 @@ export default function AdminVolunteerLog() {
             </div>
           </div>
 
-            <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1.5rem' }}>
               <span style={{ background: 'rgba(255,255,255,0.15)', color: 'white', padding: '0.4rem 1.25rem', borderRadius: '12px', backdropFilter: 'blur(5px)', fontSize: '0.9rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)' }}>
                 {volunteer.role === 'admin' ? 'مدير نظام' : 'عضو فريق'}
               </span>
@@ -225,17 +228,21 @@ export default function AdminVolunteerLog() {
             </div>
 
           {/* Overlapping Avatar */}
-          <div style={{ position: 'absolute', bottom: '-45px', padding: '6px', background: 'white', borderRadius: '35px', boxShadow: '0 15px 35px rgba(0,0,0,0.1)' }}>
-             <div style={{ width: 90, height: 90, borderRadius: '28px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem' }}>
+          <div style={{ position: 'absolute', bottom: '-45px', left: '50%', transform: 'translateX(-50%)', padding: '6px', background: 'white', borderRadius: '35px', boxShadow: '0 15px 35px rgba(0,0,0,0.1)' }}>
+             <div style={{ width: 90, height: 90, borderRadius: '28px', background: '#f0fdf4', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem' }}>
                 👤
              </div>
           </div>
         </div>
         
-        <div style={{ paddingTop: '60px', paddingBottom: '2rem', display: 'flex', justifyContent: 'center', gap: '3rem' }}>
+        <div style={{ paddingTop: '65px', paddingBottom: '2rem', display: 'flex', justifyContent: 'center', gap: '3rem' }}>
            <div className="mini-stat">
               <span className="label">تاريخ الانضمام</span>
               <span className="val">{new Date(volunteer.created_at).toLocaleDateString('ar-EG')}</span>
+           </div>
+           <div className="mini-stat">
+              <span className="label">تفاعل المهام</span>
+              <span className="val">{history.length} حركة</span>
            </div>
         </div>
       </div>

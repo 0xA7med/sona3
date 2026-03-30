@@ -127,13 +127,12 @@ export default function Profile() {
   };
 
   return (
-    <div className="page-content" style={{ padding: 0, overflowX: 'hidden' }}>
-      {/* Premium Hero Header */}
+    <div className="page-content" style={{ padding: 0 }}>
+      {/* Premium Hero Header - No fixed height, padding at bottom creates space for the overlapping card */}
       <div style={{ 
         position: 'relative', 
-        height: '240px', 
         background: 'linear-gradient(160deg, #032a1e 0%, #074b36 100%)',
-        padding: '2rem 1.5rem',
+        padding: '2.5rem 1.5rem 6rem',
         color: 'white',
         overflow: 'hidden'
       }}>
@@ -149,7 +148,7 @@ export default function Profile() {
           🌙
         </motion.div>
         
-        <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', maxWidth: '1000px', margin: '0 auto' }}>
           <div>
             <motion.h1 
               initial={{ opacity: 0, x: -20 }}
@@ -187,52 +186,63 @@ export default function Profile() {
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
+      </div>
 
-        {/* Floating Identity Card */}
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        style={{ padding: '0 1.5rem 2rem', maxWidth: '1000px', margin: '0 auto' }}
+      >
+        {/* Overlapping Identity Card */}
         <motion.div 
           variants={cardVariants}
-          initial="hidden"
-          animate="visible"
           className="glass-profile"
           style={{ 
-            position: 'absolute', bottom: -60, left: '1.5rem', right: '1.5rem', 
-            padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem',
-            zIndex: 10
+            marginTop: '-4rem',
+            marginBottom: '2rem',
+            background: 'white',
+            padding: '1.5rem', 
+            display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap',
+            zIndex: 10,
+            position: 'relative',
+            borderRadius: '24px',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.08)'
           }}
         >
           <div style={{ position: 'relative' }}>
             <div style={{ 
-              width: 75, height: 75, borderRadius: '22px', 
+              width: 70, height: 70, borderRadius: '22px', 
               background: 'linear-gradient(45deg, var(--gold) 0%, var(--gold-light) 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-dark)',
               boxShadow: '0 8px 20px rgba(212,175,55,0.4)',
               border: '3px solid white'
             }}>
-              <User size={38} />
+              <User size={34} strokeWidth={2.5} />
             </div>
             <div style={{ 
               position: 'absolute', bottom: -5, right: -5, 
-              width: 28, height: 28, borderRadius: '50%', background: '#10b981',
+              width: 26, height: 26, borderRadius: '50%', background: '#10b981',
               border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
             }}>
               <Zap size={14} fill="currentColor" />
             </div>
           </div>
           
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: '200px' }}>
             {isEditing ? (
               <input 
                 className="input" 
                 value={form.full_name} 
                 onChange={e => setForm({...form, full_name: e.target.value})}
-                style={{ background: 'white', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border)' }}
+                style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border)', width: '100%', marginBottom: '0.5rem', fontWeight: 700 }}
               />
             ) : (
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.4rem', color: 'var(--primary-dark)' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '0.4rem', color: 'var(--primary-dark)' }}>
                 {profile?.full_name}
               </h2>
             )}
-            <div style={{ display: 'flex', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
               <span style={{ 
                 background: profile?.role === 'admin' ? '#eff6ff' : '#fef9c3', 
                 color: profile?.role === 'admin' ? '#1e40af' : '#854d0e',
@@ -244,7 +254,7 @@ export default function Profile() {
                 background: '#f1f5f9', color: '#475569',
                 fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '8px'
               }}>
-                 {profile?.id.substring(0, 8).toUpperCase()}
+                 ID: {profile?.id.substring(0, 8).toUpperCase()}
               </span>
             </div>
           </div>
@@ -255,24 +265,16 @@ export default function Profile() {
             style={{ 
               background: isEditing ? '#f3f4f6' : 'var(--primary-light)', 
               color: 'var(--primary)',
-              borderRadius: '12px', width: 40, height: 40, padding: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              borderRadius: '12px', width: 44, height: 44, padding: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
             }}
           >
-            {isEditing ? <X size={18} /> : <Edit2 size={18} />}
+            {isEditing ? <X size={20} /> : <Edit2 size={20} />}
           </button>
         </motion.div>
-      </div>
 
-      <motion.div 
-        className="container" 
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        style={{ padding: '80px 1.5rem 2rem' }}
-      >
         {/* Stats Grid - Premium Version */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           {[
             { label: 'إجمالي الحالات', value: stats.total,     icon: Heart,       color: '#3b82f6' },
             { label: 'مهام مكتملة',    value: stats.completed, icon: CheckCircle, color: '#10b981' },
