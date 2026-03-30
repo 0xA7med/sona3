@@ -41,6 +41,7 @@ export default function AdminFamilyForm() {
   
   const [children, setChildren] = useState<Partial<Child>[]>([]);
   const [notes, setNotes] = useState('');
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   // Live Priority Calculation
   const currentPriority = calcPriorityScore({
@@ -127,10 +128,18 @@ export default function AdminFamilyForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!motherName || nationalId.length !== 14) {
-      toast('يرجى استكمال الاسم والرقم القومي الصحيح', 'warning');
+    const newErrors: Record<string, boolean> = {};
+    if (!motherName) newErrors.motherName = true;
+    if (nationalId && nationalId.length !== 14) newErrors.nationalId = true;
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast('يرجى تصحيح الخانات المحددة باللون الأحمر', 'warning');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+    
+    setErrors({});
     
     setSaving(true);
     try {
@@ -235,12 +244,25 @@ export default function AdminFamilyForm() {
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">الاسم بالكامل</label>
-              <input type="text" className="form-input" required value={motherName} onChange={e => setMotherName(e.target.value)} />
+              <label className="form-label" style={{ color: errors.motherName ? '#ef4444' : 'inherit' }}>الاسم بالكامل</label>
+              <input 
+                type="text" 
+                className={`form-input ${errors.motherName ? 'input-error' : ''}`} 
+                required 
+                value={motherName} 
+                onChange={e => { setMotherName(e.target.value); if(errors.motherName) setErrors(prev => ({...prev, motherName: false})); }} 
+              />
+              {errors.motherName && <div className="input-error-text">هذا الحقل مطلوب</div>}
             </div>
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">الرقم القومي (14 رقم)</label>
-              <NIDInput value={nationalId || ''} onChange={handleNIDChange} />
+              <label className="form-label" style={{ color: errors.nationalId ? '#ef4444' : 'inherit' }}>الرقم القومي (اختياري)</label>
+              <div className={errors.nationalId ? 'input-error' : ''} style={{ borderRadius: '12px' }}>
+                <NIDInput 
+                  value={nationalId || ''} 
+                  onChange={(val, data) => { handleNIDChange(val, data); if(errors.nationalId) setErrors(prev => ({...prev, nationalId: false})); }} 
+                />
+              </div>
+              {errors.nationalId && <div className="input-error-text">يجب إدخال 14 رقم صحيح</div>}
             </div>
           </div>
 
@@ -377,7 +399,7 @@ export default function AdminFamilyForm() {
         </motion.div>
 
         {/* Actions */}
-        <div style={{ position: 'sticky', bottom: 0, background: 'rgba(237, 241, 239, 0.9)', backdropFilter: 'blur(10px)', padding: '1rem 0', display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid var(--border-light)', zIndex: 10 }}>
+        <div className="form-sticky-footer">
           <button type="button" className="btn btn-ghost" onClick={() => navigate(-1)} disabled={saving}>إلغاء</button>
           <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
             {saving ? <span className="skeleton" style={{ width: 20, height: 20, borderRadius: '50%', background: 'transparent', border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} /> : <Save size={20} />}

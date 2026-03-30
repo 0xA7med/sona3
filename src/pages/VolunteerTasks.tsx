@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { 
-  MapPin, Phone, Calendar, CheckCircle, 
-  Clock, ExternalLink, RefreshCw, X 
+  MapPin, Phone, CheckCircle, 
+  Clock, RefreshCw, X 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '../components/Toast';
@@ -184,134 +184,139 @@ export default function VolunteerTasks() {
   };
 
   return (
-    <div className="page-content">
-      <div className="page-header">
+    <div className="page-content" style={{ paddingBottom: '5rem' }}>
+      <div className="page-header" style={{ marginBottom: '2rem' }}>
         <div>
-          <h1 className="page-title">سجل العمليات</h1>
+          <h1 className="page-title" style={{ fontSize: '1.75rem', fontWeight: 900 }}>سجل العمليات</h1>
           <p className="page-subtitle">إدارة الحالات الموكلة إليك حالياً للمتابعة والتوزيع</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div className="card p-sm px-md" style={{ background: 'var(--primary-light)', border: '1px solid var(--primary-border)', borderRadius: '14px' }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-dark)', opacity: 0.7 }}>رصيد محفظتي</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--primary)' }}>{(wallet.received - wallet.distributed).toLocaleString('ar-EG')} ج.م</div>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={fetchTasks} disabled={loading}>
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          </button>
+        <button className="btn btn-ghost btn-sm" onClick={fetchTasks} disabled={loading} style={{ borderRadius: '12px', background: 'var(--surface)' }}>
+          <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fff 0%, #f0fdf4 100%)', border: '1px solid #dcfce7' }}>
+          <div className="stat-label">رصيد المحفظة</div>
+          <div className="stat-value" style={{ color: '#16a34a' }}>{(wallet.received - wallet.distributed).toLocaleString('ar-EG')} <span style={{ fontSize: '0.8rem' }}>ج.م</span></div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">إجمالي المهام</div>
+          <div className="stat-value">{tasks.length}</div>
+        </div>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fff 0%, #eff6ff 100%)', border: '1px solid #dbeafe' }}>
+          <div className="stat-label">قيد التنفيذ</div>
+          <div className="stat-value" style={{ color: '#2563eb' }}>{tasks.filter(t => t.status === 'in_progress').length}</div>
+        </div>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fff 0%, #fff7ed 100%)', border: '1px solid #ffedd5' }}>
+          <div className="stat-label">معلقة</div>
+          <div className="stat-value" style={{ color: '#ea580c' }}>{tasks.filter(t => t.status === 'pending').length}</div>
         </div>
       </div>
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: 180, borderRadius: 20 }} />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: 180, borderRadius: 24 }} />)}
         </div>
       ) : tasks.length === 0 ? (
-        <div className="empty-state" style={{ marginTop: '3rem' }}>
-          <div className="empty-state-icon">✅</div>
-          <h2>لا توجد مهام حالياً</h2>
-          <p>أنت الآن غير مكلف بأي حالات. شكراً لجهودك!</p>
+        <div className=" glass-card" style={{ marginTop: '2rem', padding: '5rem 2rem', textAlign: 'center', background: 'white', borderRadius: '32px' }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>✨</div>
+          <h2 style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--primary-dark)' }}>لا توجد مهام حالياً</h2>
+          <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '1rem auto' }}>
+            أنت الآن غير مكلف بأي حالات توزيع أو متابعة. يمكنك مراجعة الإدارة للأعمال القادمة.
+          </p>
+          <button className="btn btn-primary" onClick={fetchTasks} style={{ marginTop: '1.5rem', padding: '0.75rem 2rem' }}>
+            <RefreshCw size={18} style={{ marginLeft: '8px' }} /> تحديث الصفحة
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
           {tasks.map((task) => (
             <motion.div 
               key={task.id} 
-              className="case-card"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="card"
+              style={{ 
+                background: 'white', 
+                borderRadius: '24px', 
+                border: task.status === 'in_progress' ? '2px solid var(--primary)' : '1px solid var(--border-light)',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+                padding: '1.5rem',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
             >
-              <div className="case-card-header">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>{task.family.mother_name}</h3>
-                  <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                    {getStatusBadge(task.status)}
-                    <span className="priority-badge" style={{ 
-                      background: task.family.priority_score > 7 ? '#fef2f2' : '#f0fdf4',
-                      color: task.family.priority_score > 7 ? '#ef4444' : '#16a34a'
-                    }}>
-                      أولوية {task.family.priority_score}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '4px', background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 700 }}>
-                      {task.campaign.name}
-                    </span>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
+                    {task.campaign.name}
                   </div>
-                </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e293b' }}>{task.family.mother_name}</h3>
                   {locks.find(l => l.family_id === task.family.id && l.locked_by !== profile?.id) && (
-                    <div style={{ color: 'var(--error)', fontWeight: 800, marginBottom: '0.2rem' }}>
-                      🚫 قيد المعالجة (بواسطة {locks.find(l => l.family_id === task.family.id)?.locked_by_name || 'متطوع آخر'})
+                    <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 800, marginTop: '0.25rem' }}>
+                      🚫 قيد المعالجة بواسطة متطوع آخر
                     </div>
                   )}
-                  <Calendar size={12} style={{ display: 'inline', marginLeft: '4px' }} />
-                  {new Date(task.assigned_at).toLocaleDateString('ar-EG')}
+                </div>
+                {getStatusBadge(task.status)}
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ flex: 1, background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <MapPin size={16} color="var(--primary)" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{task.family.district}</span>
+                </div>
+                <div style={{ flex: 1, background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Clock size={16} color="var(--primary)" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                    {new Date(task.assigned_at).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}
+                  </span>
                 </div>
               </div>
 
-              <div className="case-card-body">
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '0.6rem', marginTop: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-                    <MapPin size={16} color="var(--primary)" />
-                    <span className="truncate-2">{task.family.district} — {task.family.address}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-                    <Phone size={16} color="var(--primary)" />
-                    <a href={`tel:${task.family.phone}`} style={{ color: 'var(--primary)', fontWeight: 700 }}>{task.family.phone}</a>
-                  </div>
-                </div>
-
-                {/* Financial Breakdown Section */}
-                <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <RefreshCw size={14} /> تفاصيل المبلغ المستحق
-                  </h4>
-                  
-                  {(() => {
-                    const breakdown = calculateDistribution(task.family as any, task.campaign);
-                    return (
-                      <>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                          {breakdown.childrenBreakdown.map((s: any, idx: number) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              <span>{s.name} ({s.age} سنة)</span>
-                              <span style={{ fontWeight: 600 }}>{s.amount} ج.م</span>
-                            </div>
-                          ))}
-                          <div style={{ height: '1px', background: 'var(--border-light)', margin: '0.4rem 0' }} />
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                            <span>رسوم التحويل</span>
-                            <span>{breakdown.fee} ج.م</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 800, marginTop: '0.4rem' }}>
-                            <span>الإجمالي</span>
-                            <span>{breakdown.total} ج.م</span>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
+              <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '16px', marginBottom: '1.25rem', border: '1px dashed #e2e8f0' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>تفاصيل المستحقات:</div>
+                {(() => {
+                  const breakdown = calculateDistribution(task.family as any, task.campaign);
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary)' }}>
+                        {breakdown.total.toLocaleString('ar-EG')} <span style={{ fontSize: '0.7rem' }}>ج.م</span>
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'left' }}>
+                        {breakdown.childrenBreakdown.length} أبناء + رسوم
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
-              <div className="case-card-footer">
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {task.status !== 'completed' ? (
                   <>
                     {task.status === 'pending' ? (
                       <button 
                         className="btn btn-primary btn-sm flex-1"
+                        style={{ height: '42px', borderRadius: '12px' }}
                         onClick={() => handleStartWork(task.family.id, task.campaign.id)}
                       >
-                        <Clock size={16} /> ابدأ التنفيذ الآن
+                        ابدأ التنفيذ
                       </button>
                     ) : (
                       <>
                         <button 
                           className="btn btn-primary btn-sm flex-1"
+                          style={{ height: '42px', borderRadius: '12px' }}
                           onClick={() => updateStatus(task.id, 'completed', task.family.id, task.campaign.id).then(() => lockService.releaseLock(task.family.id, profile?.id || ''))}
                         >
-                          <CheckCircle size={16} /> إتمام التوزيع
+                          <CheckCircle size={16} /> إتمام
                         </button>
                         <button 
                           className="btn btn-ghost btn-sm"
+                          style={{ height: '42px', borderRadius: '12px', background: '#fff7ed', color: '#ea580c' }}
                           onClick={() => {
                             if (window.confirm('تعذر التواصل؟')) {
                                updateStatus(task.id, 'no_answer', task.family.id, task.campaign.id);
@@ -322,27 +327,30 @@ export default function VolunteerTasks() {
                         </button>
                         <button 
                           className="btn btn-ghost btn-sm"
+                          style={{ height: '42px', width: '42px', padding: 0, borderRadius: '12px', background: '#f8fafc' }}
                           onClick={() => {
-                            if (window.confirm('هل تريد إلغاء القفل والعودة لاحقاً؟')) {
+                            if (window.confirm('إلغاء القفل؟')) {
                               lockService.releaseLock(task.family.id, profile?.id || '');
                               updateStatus(task.id, 'pending', task.family.id, task.campaign.id);
                             }
                           }}
+                          title="إلغاء"
                         >
-                          <X size={16} /> إلغاء
+                          <X size={18} />
                         </button>
                       </>
                     )}
                     <button 
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => window.open(`https://maps.google.com/?q=${task.family.address}`, '_blank')}
+                      className="btn btn-secondary btn-sm"
+                      style={{ height: '42px', width: '42px', padding: 0, borderRadius: '12px' }}
+                      onClick={() => window.open(`tel:${task.family.phone}`, '_self')}
                     >
-                      <ExternalLink size={16} /> خرائط
+                      <Phone size={18} />
                     </button>
                   </>
                 ) : (
-                  <div style={{ width: '100%', textAlign: 'center', padding: '0.5rem', color: 'var(--green-light)', fontWeight: 700 }}>
-                    ✨ تمت هذه المهمة بنجاح
+                  <div style={{ width: '100%', textAlign: 'center', padding: '0.75rem', background: '#f0fdf4', color: '#16a34a', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem' }}>
+                    ✨ المهمة مكتملة
                   </div>
                 )}
               </div>

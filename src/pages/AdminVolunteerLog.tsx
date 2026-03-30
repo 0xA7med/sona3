@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Phone, MapPin, 
-  DollarSign, Activity, Award
+  DollarSign, Activity, Award, Trash2, CheckCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
@@ -20,6 +20,7 @@ export default function AdminVolunteerLog() {
   const [loading, setLoading]     = useState(true);
   const [fundAmount, setFundAmount] = useState(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isWalletConfirmOpen, setIsWalletConfirmOpen] = useState(false);
   const [walletActionType, setWalletActionType] = useState<'add' | 'sub'>('add');
   const [activeTab, setActiveTab] = useState<'log' | 'fin'>('fin');
@@ -93,16 +94,37 @@ export default function AdminVolunteerLog() {
   const toggleStatus = async () => {
     if (!volunteer) return;
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: !volunteer.is_active })
-        .eq('id', id);
-      if (error) throw error;
-      toast(`✅ تم ${volunteer.is_active ? 'تعطيل' : 'تنشيط'} العضو بنجاح`, 'success');
+      if (!volunteer.is_active) {
+        // First time activation - confirm email and set active
+        const { error } = await supabase.rpc('activate_user_secure', { target_user_id: id });
+        if (error) throw error;
+        toast('✅ تم تفعيل الحساب وتأكيد البريد الإلكتروني', 'success');
+      } else {
+        // Regular toggle (disable)
+        const { error } = await supabase
+          .from('profiles')
+          .update({ is_active: false })
+          .eq('id', id);
+        if (error) throw error;
+        toast('✅ تم تعطيل العضو بنجاح', 'success');
+      }
       setIsConfirmOpen(false);
       fetchData();
     } catch (err) {
-      toast('❌ فشل تغيير الحالة', 'error');
+      toast('❌ فشل تغيير الحالة. تأكد من إعداد قاعدة البيانات.', 'error');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!volunteer || !id) return;
+    try {
+      const { error } = await supabase.rpc('delete_user_secure', { target_user_id: id });
+      if (error) throw error;
+      toast('✅ تم حذف الحساب نهائياً بنجاح', 'success');
+      navigate('/admin/volunteers');
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      toast('❌ فشل حذف الحساب. تأكد من تشغيل ملف SQL المهاجر في Supabase.', 'error');
     }
   };
 
@@ -179,16 +201,27 @@ export default function AdminVolunteerLog() {
             </div>
           </div>
 
-            <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1.25rem' }}>
               <span style={{ background: 'rgba(255,255,255,0.15)', color: 'white', padding: '0.4rem 1.25rem', borderRadius: '12px', backdropFilter: 'blur(5px)', fontSize: '0.9rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)' }}>
                 {volunteer.role === 'admin' ? 'مدير نظام' : 'عضو فريق'}
               </span>
-              <button 
-                className={`btn-status ${volunteer.is_active ? 'active' : 'inactive'}`}
-                onClick={() => setIsConfirmOpen(true)}
-              >
-                {volunteer.is_active ? 'حساب نشط' : 'حساب معطل'}
-              </button>
+              
+              {!volunteer.is_active ? (
+                <button 
+                  className="btn btn-primary" 
+                  style={{ borderRadius: '12px', padding: '0.5rem 1.5rem', fontWeight: 800, gap: '0.5rem' }}
+                  onClick={() => setIsConfirmOpen(true)}
+                >
+                  <CheckCircle size={18} /> اعتماد وتفعيل الحساب
+                </button>
+              ) : (
+                <button 
+                  className="btn-status active"
+                  onClick={() => setIsConfirmOpen(true)}
+                >
+                  حساب نشط
+                </button>
+              )}
             </div>
 
           {/* Overlapping Avatar */}
@@ -336,9 +369,18 @@ export default function AdminVolunteerLog() {
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={toggleStatus}
-        title={volunteer.is_active ? 'تعطيل العضو؟' : 'تنشيط العضو؟'}
-        message={volunteer.is_active ? 'لن يتمكن هذا العضو من دخول النظام حتى إشعار آخر.' : 'سيتم السماح للعضو بالوصول للمهام مرة أخرى.'}
+        title={volunteer.is_active ? 'تعطيل العضو؟' : 'تفعيل العضو الجديد؟'}
+        message={volunteer.is_active ? 'لن يتمكن هذا العضو من دخول النظام حتى إشعار آخر.' : 'سيتم اعتماد العضو والسماح له بالوصول للمهام والعمل الميداني.'}
         type={volunteer.is_active ? 'danger' : 'primary'}
+      />
+
+      <ConfirmModal 
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title="حذف الحساب نهائياً؟"
+        message={`هل أنت متأكد من حذف حساب ${volunteer.full_name}؟ لا يمكن التراجع عن هذه الخطوة وسيتم حذف كل سجلاته.`}
+        type="danger"
       />
 
       <ConfirmModal 
@@ -399,7 +441,14 @@ export default function AdminVolunteerLog() {
         .timeline-v-item { position: relative; padding-bottom: 2rem; padding-right: 1.5rem; }
         .timeline-v-item .marker { position: absolute; right: -7px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #065f46; border: 2px solid white; box-shadow: 0 0 0 4px #f0fdf4; }
         .timeline-v-item .content { background: #f8fafc; padding: 1rem; border-radius: 15px; border: 1px solid #f1f5f9; }
+        .btn-delete-subtle { display: flex; align-items: center; gap: 0.5rem; background: transparent; border: none; color: #94a3b8; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.2s; margin: 4rem auto 0; padding: 0.5rem 1rem; border-radius: 8px; }
+        .btn-delete-subtle:hover { color: #dc2626; background: #fee2e2; }
       `}</style>
+
+      {/* Subtle Delete Button at the bottom */}
+      <button className="btn-delete-subtle" onClick={() => setIsDeleteConfirmOpen(true)}>
+        <Trash2 size={14} /> حذف هذا الحساب نهائياً
+      </button>
     </div>
   );
 }

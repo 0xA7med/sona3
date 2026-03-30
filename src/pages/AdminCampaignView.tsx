@@ -87,15 +87,27 @@ export default function AdminCampaignView() {
       </div>
 
       {/* Main Breakdown */}
-      <div className="glass-card">
-        <div className="p-6 border-b" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <h2 className="section-title">سجل توزيع الحملة التفصيلي</h2>
-          <div style={{ position: 'relative', width: '300px' }}>
-            <Search style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={16} />
+      <div className="card shadow-sm overflow-hidden" style={{ background: 'white', borderRadius: '24px', border: 'none' }}>
+        <div style={{ 
+          padding: '1.5rem 2rem', 
+          borderBottom: '1px solid #f1f5f9', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          flexWrap: 'wrap', 
+          gap: '1rem',
+          background: 'linear-gradient(to right, #ffffff, #f8fafc)'
+        }}>
+          <div>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: 'var(--primary-dark)' }}>سجل توزيع الحملة التفصيلي</h2>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>متابعة حالة التنفيذ لكل أسرة في هذه الحملة</p>
+          </div>
+          <div className="search-bar" style={{ margin: 0, width: '100%', maxWidth: '320px', background: '#f1f5f9' }}>
+            <Search className="search-icon" size={18} />
             <input 
               type="text" 
-              className="input input-sm pr-10" 
-              placeholder="بحث باسم الأسرة..." 
+              className="search-input" 
+              placeholder="بحث باسم الأسرة أو الكود..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -103,47 +115,51 @@ export default function AdminCampaignView() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="table">
+          <table className="custom-table">
             <thead>
-              <tr>
-                <th>كود الأسرة</th>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ padding: '1rem 2rem' }}>كود الأسرة</th>
                 <th>اسم الأم</th>
                 <th>المتطوع المسئول</th>
                 <th>الحالة</th>
                 <th>المبلغ المخصص</th>
-                <th></th>
+                <th style={{ padding: '1rem 2rem' }}></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((a) => (
                 <tr key={a.id}>
-                  <td style={{ fontWeight: 800, fontSize: '0.85rem' }}>{a.family?.sequential_id}</td>
+                  <td style={{ padding: '1.25rem 2rem', fontWeight: 900, color: 'var(--primary)', fontSize: '0.85rem' }}>{a.family?.sequential_id}</td>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{a.family?.mother_name}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{a.family?.children?.length || 0} أبناء</div>
+                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>{a.family?.mother_name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{a.family?.children?.length || 0} أبناء • {a.family?.district}</div>
                   </td>
                   <td>
                     {a.volunteer ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--surface)', fontSize: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          👤
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '8px', background: 'var(--primary-light)', color: 'var(--primary)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                          {a.volunteer.full_name?.charAt(0)}
                         </div>
-                        <span style={{ fontSize: '0.8rem' }}>{a.volunteer.full_name}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{a.volunteer.full_name}</span>
                       </div>
                     ) : (
-                      <span style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-light)' }}>غير مسند</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontStyle: 'italic' }}>غير مسند</span>
                     )}
                   </td>
                   <td>
                     <StatusBadge status={a.status} />
                   </td>
                   <td>
-                    <div style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                      {campaign.amount_per_family} ج.م
+                    <div style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1rem' }}>
+                      {campaign.amount_per_family?.toLocaleString()} <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>ج.م</span>
                     </div>
                   </td>
-                  <td>
-                    <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/admin/families/${a.family_id}`)}>
+                  <td style={{ padding: '1rem 2rem', textAlign: 'left' }}>
+                    <button 
+                      className="btn btn-ghost btn-sm" 
+                      style={{ color: 'var(--primary)', background: 'var(--primary-light)', borderRadius: '10px' }}
+                      onClick={() => navigate(`/admin/families/${a.family_id}`)}
+                    >
                       <ExternalLink size={16} />
                     </button>
                   </td>
@@ -151,8 +167,11 @@ export default function AdminCampaignView() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                    لا يوجد بيانات مطابقة للبحث
+                  <td colSpan={6}>
+                    <div className="empty-state">
+                      <div className="empty-state-icon">🔍</div>
+                      <p>لا توجد بيانات مطابقة للبحث حالياً</p>
+                    </div>
                   </td>
                 </tr>
               )}

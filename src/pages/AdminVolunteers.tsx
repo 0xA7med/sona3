@@ -109,7 +109,10 @@ export default function AdminVolunteers() {
                   👤
                 </div>
                 <div>
-                  <h3 style={{ fontWeight: 800 }}>{v.full_name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <h3 style={{ fontWeight: 800 }}>{v.full_name}</h3>
+                    {!v.is_active && <span className="badge badge-inactive">بانتظار التفعيل</span>}
+                  </div>
                   <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.2rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Phone size={14} /> {v.phone || 'غير متاح'}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -127,14 +130,12 @@ export default function AdminVolunteers() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button 
                   className="btn btn-primary btn-sm"
                   onClick={() => navigate(`/admin/volunteers/${v.id}`)}
                 >
                   <Eye size={18} /> التفاصيل والتحكم
                 </button>
-              </div>
             </motion.div>
           ))
         )}

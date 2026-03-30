@@ -14,11 +14,49 @@ export default function Login() {
   const [zone,     setZone]     = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
+  const [errors,   setErrors]   = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!email.trim()) {
+      newErrors.email = 'البريد الإلكتروني مطلوب';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'صيغة البريد غير صحيحة';
+    }
+
+    if (!password) {
+      newErrors.password = 'كلمة المرور مطلوبة';
+    } else if (password.length < 6) {
+      newErrors.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+    }
+
+    if (!isLogin) {
+      if (!name.trim()) {
+        newErrors.name = 'الاسم الثلاثي مطلوب';
+      } else if (name.trim().split(/\s+/).length < 3) {
+        newErrors.name = 'يرجى إدخال الاسم المكون من 3 مقاطع على الأقل';
+      }
+
+      if (!phone.trim()) {
+        newErrors.phone = 'رقم الهاتف مطلوب';
+      } else if (!/^01[0125][0-9]{8}$/.test(phone.trim())) {
+        newErrors.phone = 'رقم هاتف مصري غير صحيح (11 رقم)';
+      }
+
+      if (!zone.trim()) {
+        newErrors.zone = 'المنطقة مطلوبة';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || (!isLogin && (!name || !phone || !zone))) {
-      toast('يرجى إدخال جميع البيانات المطلوبة', 'warning');
+    if (!validate()) {
+      toast('يرجى تصحيح الأخطاء المطلوبة', 'warning');
       return;
     }
     setLoading(true);
@@ -114,42 +152,45 @@ export default function Login() {
                 exit={{ opacity: 0, height: 0 }}
                 style={{ overflow: 'hidden' }}
               >
-                <div className="form-group">
-                  <label className="form-label" htmlFor="name">الاسم الثلاثي</label>
-                  <input
-                    id="name"
-                    type="text"
-                    className="form-input form-input-lg"
-                    placeholder="محمد أحمد محمود"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="phone">رقم الهاتف</label>
-                  <input
-                    id="phone"
-                    type="tel"
-                    className="form-input form-input-lg"
-                    placeholder="01xxxxxxxxx"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="zone">المنطقة / السكن</label>
-                  <input
-                    id="zone"
-                    type="text"
-                    className="form-input form-input-lg"
-                    placeholder="القاهرة، شارع..."
-                    value={zone}
-                    onChange={e => setZone(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="name">الاسم الثلاثي</label>
+                    <input
+                      id="name"
+                      type="text"
+                      className={`form-input form-input-lg ${errors.name ? 'form-input-error' : ''}`}
+                      placeholder="محمد أحمد محمود"
+                      value={name}
+                      onChange={e => { setName(e.target.value); if(errors.name) setErrors(prev => ({...prev, name: ''})); }}
+                      disabled={loading}
+                    />
+                    {errors.name && <span className="form-error-text">{errors.name}</span>}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="phone">رقم الهاتف</label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      className={`form-input form-input-lg ${errors.phone ? 'form-input-error' : ''}`}
+                      placeholder="01xxxxxxxxx"
+                      value={phone}
+                      onChange={e => { setPhone(e.target.value); if(errors.phone) setErrors(prev => ({...prev, phone: ''})); }}
+                      disabled={loading}
+                    />
+                    {errors.phone && <span className="form-error-text">{errors.phone}</span>}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="zone">المنطقة / السكن</label>
+                    <input
+                      id="zone"
+                      type="text"
+                      className={`form-input form-input-lg ${errors.zone ? 'form-input-error' : ''}`}
+                      placeholder="القاهرة، شارع..."
+                      value={zone}
+                      onChange={e => { setZone(e.target.value); if(errors.zone) setErrors(prev => ({...prev, zone: ''})); }}
+                      disabled={loading}
+                    />
+                    {errors.zone && <span className="form-error-text">{errors.zone}</span>}
+                  </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -159,14 +200,15 @@ export default function Login() {
             <input
               id="email"
               type="email"
-              className="form-input form-input-lg"
+              className={`form-input form-input-lg ${errors.email ? 'form-input-error' : ''}`}
               placeholder="example@domain.com"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => { setEmail(e.target.value); if(errors.email) setErrors(prev => ({...prev, email: ''})); }}
               autoComplete="email" dir="ltr"
               style={{ textAlign: 'left' }}
               disabled={loading}
             />
+            {errors.email && <span className="form-error-text">{errors.email}</span>}
           </div>
 
           <div className="form-group" style={{ marginBottom: '1.5rem' }}>
@@ -175,10 +217,10 @@ export default function Login() {
               <input
                 id="password"
                 type={showPw ? 'text' : 'password'}
-                className="form-input form-input-lg"
+                className={`form-input form-input-lg ${errors.password ? 'form-input-error' : ''}`}
                 placeholder="••••••••"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { setPassword(e.target.value); if(errors.password) setErrors(prev => ({...prev, password: ''})); }}
                 autoComplete={isLogin ? "current-password" : "new-password"}
                 dir="ltr" style={{ textAlign: 'left', paddingLeft: '3rem' }}
                 disabled={loading}
@@ -195,6 +237,7 @@ export default function Login() {
                 {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            {errors.password && <span className="form-error-text">{errors.password}</span>}
           </div>
 
           <motion.button
@@ -225,7 +268,7 @@ export default function Login() {
           <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem' }}>
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => { setIsLogin(!isLogin); setErrors({}); }}
               style={{
                 background: 'none', border: 'none', color: 'var(--primary)',
                 fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'

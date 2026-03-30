@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, ArrowRight, DollarSign, FileText, Tag, Activity } from 'lucide-react';
+import { Save, ArrowRight, DollarSign, FileText, Tag, Activity, Trash2, Plus, Lightbulb } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
 import type { Campaign, CampaignType, CampaignStatus } from '../types';
@@ -30,8 +30,7 @@ export default function AdminCampaignForm() {
     { from: 13, to: 18, amount: 600, label: 'إعدادي/ثانوي' }
   ]);
   const [commissionRules, setCommissionRules] = useState<any[]>([
-    { threshold: 500, fee: 5 },
-    { threshold: 999999, fee: 10 }
+    { threshold: 999999, fee: 5 }
   ]);
 
   useEffect(() => {
@@ -298,27 +297,62 @@ export default function AdminCampaignForm() {
                 </div>
 
                 <div className="glass-card" style={{ background: 'rgba(var(--primary-rgb), 0.03)', border: '1px solid var(--primary-border)' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '1.25rem' }}>قواعد رسوم التحويل</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>قواعد رسوم التحويل</h3>
+                    <button 
+                      type="button" className="btn btn-ghost btn-xs"
+                      onClick={() => setCommissionRules([...commissionRules, { threshold: 1000, fee: 10 }])}
+                    >
+                      <Plus size={14} /> إضافة قاعدة
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {commissionRules.map((r, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{i === 0 ? 'المبالغ حتى' : 'المبالغ أكثر من'} {r.threshold} ج.م</span>
+                      <div key={i} className="card p-sm shadow-sm" style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: '0.75rem', alignItems: 'center', background: 'white' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>حتى مبلغ:</span>
                           <input 
-                            type="number" className="form-input" style={{ width: '70px', padding: '0.35rem 0.5rem', textAlign: 'center' }}
+                            type="number" className="form-input form-input-sm" 
+                            value={r.threshold} onChange={e => {
+                              const newR = [...commissionRules];
+                              newR[i].threshold = Number(e.target.value);
+                              setCommissionRules(newR);
+                            }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <input 
+                            type="number" className="form-input form-input-sm" style={{ textAlign: 'center' }}
                             value={r.fee} onChange={e => {
                               const newR = [...commissionRules];
                               newR[i].fee = Number(e.target.value);
                               setCommissionRules(newR);
                             }}
                           />
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>ج.م</span>
                         </div>
+                        <button 
+                          type="button" className="btn btn-ghost btn-xs text-error"
+                          onClick={() => setCommissionRules(commissionRules.filter((_, idx) => idx !== i))}
+                          disabled={commissionRules.length <= 1}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-8 p-4 rounded-lg bg-white border shadow-sm" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                    💡 <b>نصيحة:</b> يتم حساب مجموع مبالغ أطفال الأسرة أولاً، ثم تُضاف العمولة المناسبة للمبلغ الكلي. هذا يضمن توزيعاً عادلاً ومهنياً.
+
+                  <div className="advice-card mt-8">
+                    <div className="advice-icon">
+                      <Lightbulb size={20} />
+                    </div>
+                    <div className="advice-content">
+                      <span className="advice-title">نصيحة تقنية</span>
+                      <p className="advice-text">
+                        يتم حساب مجموع مبالغ أطفال الأسرة أولاً، ثم تُضاف العمولة المناسبة بناءً على أقرب "سقف مبلغ" للشريحة المختارة. هذا يضمن دقة الحسابات المالية.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
