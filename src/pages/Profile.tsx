@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { 
   LogOut, User, Phone, MapPin, Shield, Calendar, 
   CheckCircle, Clock, Heart, RefreshCw, Save, Edit2, X,
-  ChevronLeft, Award, Zap, Star
+  Award, Zap, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '../components/Toast';
@@ -43,10 +43,11 @@ export default function Profile() {
   async function fetchStats() {
     setLoading(true);
     try {
+      if (!profile?.id) return;
       const { data, error } = await supabase
         .from('case_assignments')
         .select('status')
-        .eq('volunteer_id', profile?.id);
+        .eq('volunteer_id', profile.id);
 
       if (error) throw error;
 
@@ -148,7 +149,7 @@ export default function Profile() {
           🌙
         </motion.div>
         
-        <div style={{ position: 'relative', z-index: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <motion.h1 
               initial={{ opacity: 0, x: -20 }}
@@ -177,7 +178,10 @@ export default function Profile() {
               color: 'white',
               borderRadius: '50%',
               width: '40px', height: '40px',
-              padding: 0
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -221,7 +225,7 @@ export default function Profile() {
                 className="input" 
                 value={form.full_name} 
                 onChange={e => setForm({...form, full_name: e.target.value})}
-                style={{ background: 'white', padding: '6px 12px', borderRadius: '10px' }}
+                style={{ background: 'white', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border)' }}
               />
             ) : (
               <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.4rem', color: 'var(--primary-dark)' }}>
@@ -251,7 +255,8 @@ export default function Profile() {
             style={{ 
               background: isEditing ? '#f3f4f6' : 'var(--primary-light)', 
               color: 'var(--primary)',
-              borderRadius: '12px', width: 40, height: 40, padding: 0
+              borderRadius: '12px', width: 40, height: 40, padding: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}
           >
             {isEditing ? <X size={18} /> : <Edit2 size={18} />}
@@ -267,16 +272,17 @@ export default function Profile() {
         style={{ padding: '80px 1.5rem 2rem' }}
       >
         {/* Stats Grid - Premium Version */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
           {[
             { label: 'إجمالي الحالات', value: stats.total,     icon: Heart,       color: '#3b82f6' },
             { label: 'مهام مكتملة',    value: stats.completed, icon: CheckCircle, color: '#10b981' },
             { label: 'قيد العمل',      value: stats.active,    icon: Clock,       color: '#f59e0b' },
-          ].map((s, i) => (
+          ].map((s) => (
             <motion.div 
               key={s.label}
               variants={cardVariants}
               className="stat-card-premium"
+              style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}
             >
               <div style={{ 
                 width: '44px', height: '44px', borderRadius: '14px', 
@@ -323,7 +329,7 @@ export default function Profile() {
                   <input 
                     className="form-input" 
                     value={form.phone} 
-                    style={{ padding: '4px 0', border: 'none', borderBottom: '2px solid var(--primary)', borderRadius: 0 }}
+                    style={{ width: '100%', padding: '4px 0', border: 'none', borderBottom: '2px solid var(--primary)', borderRadius: 0, outline: 'none' }}
                     onChange={e => setForm({...form, phone: e.target.value})}
                   />
                 ) : (
@@ -342,7 +348,7 @@ export default function Profile() {
                   <input 
                     className="form-input" 
                     value={form.zone} 
-                    style={{ padding: '4px 0', border: 'none', borderBottom: '2px solid var(--primary)', borderRadius: 0 }}
+                    style={{ width: '100%', padding: '4px 0', border: 'none', borderBottom: '2px solid var(--primary)', borderRadius: 0, outline: 'none' }}
                     onChange={e => setForm({...form, zone: e.target.value})}
                   />
                 ) : (
@@ -376,7 +382,7 @@ export default function Profile() {
                   className="btn btn-primary btn-full"
                   disabled={saving}
                   onClick={handleUpdateProfile}
-                  style={{ borderRadius: '14px', height: '50px' }}
+                  style={{ borderRadius: '14px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
                   {saving ? <RefreshCw size={20} className="animate-spin" /> : <Save size={20} />}
                   حفظ التعديلات الجديدة
@@ -386,7 +392,7 @@ export default function Profile() {
           </AnimatePresence>
         </motion.div>
 
-        {/* Levels / Badges Placeholder - Extra detail for "Premium" feel */}
+        {/* Levels / Badges Placeholder */}
         <motion.div 
           variants={cardVariants}
           style={{ 
@@ -401,7 +407,7 @@ export default function Profile() {
           <div style={{ flex: 1 }}>
             <h4 style={{ fontSize: '0.9rem', fontWeight: 800 }}>المستوى الفضي</h4>
             <div style={{ height: 6, background: 'rgba(0,0,0,0.05)', borderRadius: 3, marginTop: 6, position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '65%', background: '#d4af37' }} />
+              <div style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: '65%', background: '#d4af37' }} />
             </div>
             <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 6 }}>أنجز 5 مهام إضافية للوصول للمستوى الذهبي 🏆</p>
           </div>
@@ -434,7 +440,7 @@ export default function Profile() {
         <div style={{ marginTop: '2rem' }}>
           <button 
             className="btn"
-            style={{ color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', width: '100%', borderRadius: '16px', height: '54px' }}
+            style={{ color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', width: '100%', borderRadius: '16px', height: '54px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             onClick={() => setIsLogoutModalOpen(true)}
           >
             <LogOut size={20} />

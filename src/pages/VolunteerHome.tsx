@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, CheckCircle, ArrowLeft, Calendar, Clock, Coins, ShoppingBag, Heart, Target, Info } from 'lucide-react';
+import { RefreshCw, CheckCircle, ArrowLeft, Calendar, Coins, ShoppingBag, Heart, Target, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
@@ -54,7 +54,6 @@ export default function VolunteerHome() {
     };
   }, []);
 
-  /* ── Fetch campaigns ───────────────────────────────────── */
   const fetchCampaigns = useCallback(async () => {
     setLoading(true);
     try {
@@ -74,7 +73,6 @@ export default function VolunteerHome() {
     }
   }, []);
 
-  /* ── Fetch assignments for a specific campaign ─────────── */
   const fetchAssignments = useCallback(async (campaignId: string) => {
     if (!profile) return;
     setLoading(true);
@@ -247,9 +245,9 @@ export default function VolunteerHome() {
     if (isOffline) {
       addToSyncQueue({ type: 'UPDATE_STATUS', payload: updatePayload });
       addToSyncQueue({ type: 'LOG_TRANSFER', payload: historyPayload });
-      const updated = (prev: CaseAssignment[]) => prev.map(a => a.id === assignmentId ? { ...a, status: newStatus as AssignmentStatus } : a);
-      setGlobalAssignments(updated);
-      setMyAssignments(updated(myAssignments));
+      const updater = (prev: CaseAssignment[]) => prev.map(a => a.id === assignmentId ? { ...a, status: newStatus as AssignmentStatus } : a);
+      setGlobalAssignments(updater);
+      setMyAssignments(updater(myAssignments));
       toast('💾 تم الحفظ محلياً - سيتم الرفع فور توفر نت', 'info');
       return;
     }
@@ -309,7 +307,6 @@ export default function VolunteerHome() {
   });
 
   const completedCount = assignmentsToDisplay.filter(a => a.status === 'completed').length;
-  const pendingCount   = assignmentsToDisplay.filter(a => ['pending', 'in_progress'].includes(a.status)).length;
 
   if (view === 'selection') {
     return (
@@ -327,7 +324,7 @@ export default function VolunteerHome() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <AnimatePresence mode="popLayout">
             {allCampaigns.length === 0 && !loading ? (
-              <div className="empty-state col-span-full">
+              <div key="empty" className="empty-state col-span-full">
                 <div className="empty-state-icon">🌵</div>
                 <p>لا توجد حملات نشطة حالياً</p>
               </div>
