@@ -6,7 +6,7 @@ import {
   CheckCircle, Clock, Heart, RefreshCw, Save, Edit2, X,
   Award, Zap, Star
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { toast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from '../components/ui/ConfirmModal';
@@ -113,7 +113,7 @@ export default function Profile() {
     }
   };
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1,
@@ -121,7 +121,7 @@ export default function Profile() {
     }
   };
 
-  const cardVariants = {
+  const cardVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { type: 'spring', damping: 25, stiffness: 200 } }
   };

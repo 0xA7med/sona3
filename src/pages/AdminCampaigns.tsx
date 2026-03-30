@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, Info, ArrowLeft, Target, Clock, Coins, ShoppingBag, Heart, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Info, Target, Clock, Coins, ShoppingBag, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
 import type { Campaign, CampaignType } from '../types';
