@@ -83,7 +83,7 @@ export type CampaignStatus = 'draft' | 'active' | 'completed' | 'paused';
 export interface TargetingRule {
   field: string;
   operator: 'eq' | 'gte' | 'lte' | 'in' | 'not_in';
-  value: string | number | string[];
+  value: string | number | boolean | string[];
   label?: string;
 }
 
