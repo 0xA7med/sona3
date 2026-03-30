@@ -97,12 +97,16 @@ export interface AgeBracket {
 }
 
 export interface StageBracket {
-  stage: SchoolStage;
+  stage?: SchoolStage;
+  fromGrade?: number;
+  toGrade?: number;
   amount: number;
 }
 
 export interface CommissionRule {
-  threshold: number;
+  fromAmount?: number;
+  toAmount?: number;
+  threshold?: number; // legacy
   fee: number;
 }
 

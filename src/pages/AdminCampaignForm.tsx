@@ -3,8 +3,22 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Save, ArrowRight, DollarSign, FileText, Plus, Lightbulb, Users, Calculator, GraduationCap, Baby } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
-import type { Campaign, CampaignType, CampaignStatus, SchoolStage, AgeBracket, StageBracket, CommissionRule, Child } from '../types';
-import { SCHOOL_STAGE_LABELS } from '../types';
+import type { Campaign, CampaignType, CampaignStatus, AgeBracket, StageBracket, CommissionRule, Child } from '../types';
+
+const GRADES = [
+  { value: 1, label: 'الأول الابتدائي' },
+  { value: 2, label: 'الثاني الابتدائي' },
+  { value: 3, label: 'الثالث الابتدائي' },
+  { value: 4, label: 'الرابع الابتدائي' },
+  { value: 5, label: 'الخامس الابتدائي' },
+  { value: 6, label: 'السادس الابتدائي' },
+  { value: 7, label: 'الأول الإعدادي' },
+  { value: 8, label: 'الثاني الإعدادي' },
+  { value: 9, label: 'الثالث الإعدادي' },
+  { value: 10, label: 'الأول الثانوي' },
+  { value: 11, label: 'الثاني الثانوي' },
+  { value: 12, label: 'الثالث الثانوي' },
+];
 
 export default function AdminCampaignForm() {
   const { id } = useParams();
@@ -36,12 +50,14 @@ export default function AdminCampaignForm() {
   ]);
 
   const [stageBrackets, setStageBrackets] = useState<StageBracket[]>([
-    { stage: 'primary', amount: 500 },
-    { stage: 'preparatory', amount: 700 }
+    { fromGrade: 1, toGrade: 6, amount: 500 },
+    { fromGrade: 7, toGrade: 9, amount: 700 }
   ]);
 
   const [commissionRules, setCommissionRules] = useState<CommissionRule[]>([
-    { threshold: 999999, fee: 5 }
+    { fromAmount: 0, toAmount: 500, fee: 0 },
+    { fromAmount: 501, toAmount: 1000, fee: 5 },
+    { fromAmount: 1001, toAmount: 1500, fee: 10 }
   ]);
 
   useEffect(() => {
@@ -107,8 +123,12 @@ export default function AdminCampaignForm() {
       if (distributionMode === 'age' && child.age !== undefined) {
         const bracket = ageBrackets.find(b => child.age! >= b.from && child.age! <= b.to);
         if (bracket) childAmount = bracket.amount;
-      } else if (distributionMode === 'school_stage' && child.school_stage) {
-        const bracket = stageBrackets.find(b => b.stage === child.school_stage);
+      } else if (distributionMode === 'school_stage') {
+        const grade = child.age ? Math.max(1, Math.min(12, child.age - 5)) : 1;
+        const bracket = stageBrackets.find(b => {
+          if (b.stage) return b.stage === child.school_stage;
+          return grade >= (b.fromGrade || 1) && grade <= (b.toGrade || 12);
+        });
         if (bracket) childAmount = bracket.amount;
       }
 
@@ -119,9 +139,12 @@ export default function AdminCampaignForm() {
 
     // Sum all families + their fees
     Object.values(familyDistributions).forEach(familyTotal => {
-      const rule = commissionRules
-        .sort((a,b) => a.threshold - b.threshold)
-        .find(r => familyTotal <= r.threshold);
+      const rule = commissionRules.find(r => {
+        if (r.threshold !== undefined) return familyTotal <= r.threshold;
+        const fromA = r.fromAmount || 0;
+        const toA = r.toAmount || 999999;
+        return familyTotal >= fromA && familyTotal <= toA;
+      });
       
       total += familyTotal + (rule ? rule.fee : 0);
     });
@@ -135,8 +158,13 @@ export default function AdminCampaignForm() {
     list.forEach(c => {
       if (distributionMode === 'age' && c.age !== undefined) {
         if (ageBrackets.some(b => c.age! >= b.from && c.age! <= b.to)) families.add(c.family_id);
-      } else if (distributionMode === 'school_stage' && c.school_stage) {
-        if (stageBrackets.some(b => b.stage === c.school_stage)) families.add(c.family_id);
+      } else if (distributionMode === 'school_stage') {
+        const grade = c.age ? Math.max(1, Math.min(12, c.age - 5)) : 1;
+        const valid = stageBrackets.some(b => {
+          if (b.stage) return b.stage === c.school_stage;
+          return grade >= (b.fromGrade || 1) && grade <= (b.toGrade || 12);
+        });
+        if (valid) families.add(c.family_id);
       }
     });
     return families.size;
@@ -200,15 +228,15 @@ export default function AdminCampaignForm() {
         </div>
         
         {/* Real-time Stats Card */}
-        <div className="glass-card stagger-1" style={{ padding: '0.75rem 1.5rem', border: '2px solid var(--gold)', background: 'rgba(212,175,55,0.05)', display: 'flex', gap: '2rem', alignItems: 'center' }}>
-          <div>
+        <div className="glass-card stagger-1" style={{ padding: '0.75rem 1.5rem', border: '2px solid var(--gold)', background: 'rgba(212,175,55,0.05)', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>الميزانية المتوقعة</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--gold)' }}>
               {budgetEstimate.toLocaleString()} <span style={{ fontSize: '0.85rem' }}>ج.م</span>
             </div>
           </div>
-          <div style={{ width: 1, height: 30, background: 'var(--border)' }} />
-          <div>
+          <div style={{ width: 1, height: 30, background: 'var(--border)', flexShrink: 0 }} className="hidden sm:block" />
+          <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>الأسر المستهدفة</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900 }}>{beneficiariesCount}</div>
           </div>
@@ -397,23 +425,29 @@ export default function AdminCampaignForm() {
                   ) : (
                     <div className="bracket-list">
                       <div className="flex justify-between items-center mb-4">
-                        <h3 style={{ fontSize: '0.9rem', fontWeight: 800 }}>توزيع مخصص للمراحل الدراسية</h3>
-                        <button type="button" className="btn btn-ghost btn-xs" onClick={() => setStageBrackets([...stageBrackets, { stage: 'primary', amount: 0 }])}>
-                          <Plus size={14} /> إضافة محطة
+                        <h3 style={{ fontSize: '0.9rem', fontWeight: 800 }}>توزيع مخصص للسنوات الدراسية</h3>
+                        <button type="button" className="btn btn-ghost btn-xs" onClick={() => setStageBrackets([...stageBrackets, { fromGrade: 1, toGrade: 6, amount: 0 }])}>
+                          <Plus size={14} /> إضافة مرحلة
                         </button>
                       </div>
                       <div className="grid gap-3">
                         {stageBrackets.map((b, i) => (
                           <div key={i} className="bracket-card">
-                             <div className="bracket-inputs-stage">
+                             <div className="bracket-inputs">
                                 <div className="form-group mb-0">
-                                  <label className="form-label-xs">المرحلة الدراسية</label>
-                                  <select className="form-select form-select-sm" value={b.stage} onChange={e => {
-                                    const nb = [...stageBrackets]; nb[i].stage = e.target.value as SchoolStage; setStageBrackets(nb);
+                                  <label className="form-label-xs">من الصف</label>
+                                  <select className="form-select form-select-sm" value={b.fromGrade || 1} onChange={e => {
+                                    const nb = [...stageBrackets]; nb[i].fromGrade = Number(e.target.value); delete nb[i].stage; setStageBrackets(nb);
                                   }}>
-                                    {Object.entries(SCHOOL_STAGE_LABELS).map(([val, label]) => (
-                                      <option key={val} value={val}>{label}</option>
-                                    ))}
+                                    {GRADES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                                  </select>
+                                </div>
+                                <div className="form-group mb-0">
+                                  <label className="form-label-xs">إلى الصف</label>
+                                  <select className="form-select form-select-sm" value={b.toGrade || 12} onChange={e => {
+                                    const nb = [...stageBrackets]; nb[i].toGrade = Number(e.target.value); delete nb[i].stage; setStageBrackets(nb);
+                                  }}>
+                                    {GRADES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
                                   </select>
                                 </div>
                                 <div className="form-group mb-0">
@@ -435,25 +469,35 @@ export default function AdminCampaignForm() {
                 <div className="glass-card" style={{ background: 'rgba(212,175,55,0.03)', border: '1px solid var(--gold-light)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <h3 style={{ fontSize: '0.9rem', fontWeight: 800 }}>رسوم التحويل</h3>
-                    <button type="button" className="btn btn-ghost btn-xs" onClick={() => setCommissionRules([...commissionRules, { threshold: 1000, fee: 10 }])}>
+                    <button type="button" className="btn btn-ghost btn-xs" onClick={() => setCommissionRules([...commissionRules, { fromAmount: 0, toAmount: 500, fee: 10 }])}>
                       <Plus size={14} /> إضافة
                     </button>
                   </div>
                   
                   <div className="grid gap-2">
                     {commissionRules.map((r, i) => (
-                      <div key={i} className="bracket-card" style={{ padding: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>سقف:</span>
-                          <input type="number" className="form-input form-input-sm" style={{ width: 80 }} value={r.threshold} onChange={e => {
-                            const nr = [...commissionRules]; nr[i].threshold = Number(e.target.value); setCommissionRules(nr);
-                          }} />
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>الرسوم:</span>
-                          <input type="number" className="form-input form-input-sm" style={{ width: 60 }} value={r.fee} onChange={e => {
-                            const nr = [...commissionRules]; nr[i].fee = Number(e.target.value); setCommissionRules(nr);
-                          }} />
+                      <div key={i} className="bracket-card" style={{ padding: '0.75rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>من:</span>
+                            <input type="number" className="form-input form-input-sm w-full" value={r.fromAmount || 0} onChange={e => {
+                              const nr = [...commissionRules]; nr[i].fromAmount = Number(e.target.value); delete nr[i].threshold; setCommissionRules(nr);
+                            }} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>إلى:</span>
+                            <input type="number" className="form-input form-input-sm w-full" value={r.toAmount || 99999} onChange={e => {
+                              const nr = [...commissionRules]; nr[i].toAmount = Number(e.target.value); delete nr[i].threshold; setCommissionRules(nr);
+                            }} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', gridColumn: '1 / -1' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>الرسوم:</span>
+                            <input type="number" className="form-input form-input-sm w-full" value={r.fee} onChange={e => {
+                              const nr = [...commissionRules]; nr[i].fee = Number(e.target.value); setCommissionRules(nr);
+                            }} />
+                          </div>
                         </div>
-                        <button type="button" className="btn btn-ghost btn-xs text-error" onClick={() => setCommissionRules(commissionRules.filter((_, idx) => idx !== i))} disabled={commissionRules.length <= 1}>✕</button>
+                        <button type="button" className="btn btn-ghost btn-sm text-error w-full mt-2" style={{ background: 'rgba(239,68,68,0.1)' }} onClick={() => setCommissionRules(commissionRules.filter((_, idx) => idx !== i))} disabled={commissionRules.length <= 1}>إزالة الرسوم</button>
                       </div>
                     ))}
                   </div>
@@ -473,9 +517,9 @@ export default function AdminCampaignForm() {
           </section>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '3rem', borderTop: '1px solid var(--border-light)', paddingTop: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '3rem', borderTop: '1px solid var(--border-light)', paddingTop: '2rem', flexWrap: 'wrap' }}>
           <button type="button" className="btn btn-ghost" onClick={() => navigate(-1)} disabled={saving}>إلغاء</button>
-          <button type="submit" className="btn btn-primary btn-lg px-8" disabled={saving}>
+          <button type="submit" className="btn btn-primary btn-lg px-8 flex-1 sm:flex-none justify-center" disabled={saving}>
             <Save size={20} />
             {isEdit ? 'حفظ التغييرات' : 'إنشاء الحملة الآن'}
           </button>
@@ -500,12 +544,14 @@ export default function AdminCampaignForm() {
           display: flex;
           align-items: center;
           gap: 1rem;
+          flex-wrap: wrap; /* Fixed flex wrap for small screens */
         }
         .bracket-inputs {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
           gap: 1rem;
           flex: 1;
+          min-width: 250px;
         }
         .bracket-inputs-stage {
           display: grid;
