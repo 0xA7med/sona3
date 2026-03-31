@@ -100,14 +100,39 @@ export default function FamilyCard({
         </div>
       )}
 
-      {!isAssigned && (
-        <div style={{ padding: '0.75rem', borderTop: '1px dashed var(--border)', marginTop: '0.5rem' }}>
-          <button 
-            className="btn btn-primary btn-sm w-full"
-            onClick={(e) => handleAction(e, 'claim')}
-          >
-            📥 احجز هذه الحالة لى
-          </button>
+      {/* Quick Action Container */}
+      {assignment.status !== 'completed' && (
+        <div style={{ padding: '0.75rem', borderTop: '1px dashed var(--border)', marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+          {isAssignedToMe ? (
+            <>
+              <button 
+                className="btn btn-sm"
+                style={{ flex: 1, background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.75rem', fontWeight: 800 }}
+                onClick={(e) => { e.stopPropagation(); window.location.href=`tel:${family.phone}`; }}
+              >
+                📞 اتصال سريع
+              </button>
+              <button 
+                className="btn btn-primary btn-sm"
+                style={{ flex: 1, fontSize: '0.75rem', fontWeight: 800 }}
+                onClick={(e) => { e.stopPropagation(); onAction?.('view', assignment.id); }}
+              >
+                🚀 تنفيذ المهمة
+              </button>
+            </>
+          ) : !isAssigned ? (
+            <button 
+              className="btn btn-primary btn-sm w-full"
+              style={{ fontWeight: 800, background: 'var(--primary-dark)' }}
+              onClick={(e) => handleAction(e, 'claim')}
+            >
+              📥 احجز هذه الحالة لى (حالا)
+            </button>
+          ) : (
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', textAlign: 'center', width: '100%', fontStyle: 'italic' }}>
+               هذه المهمة قيد التنفيذ بواسطة زميل آخر
+            </div>
+          )}
         </div>
       )}
     </motion.div>

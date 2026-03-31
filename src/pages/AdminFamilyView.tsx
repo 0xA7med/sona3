@@ -7,9 +7,10 @@ import {
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
 import { 
-  SOCIAL_STATUS_LABELS, SCHOOL_STAGE_LABELS, getPriorityLevel, calcPriorityScore,
+  SOCIAL_STATUS_LABELS, getPriorityLevel, calcPriorityScore,
   type Family, type CaseHistoryEvent
 } from '../types';
+import { formatDetailedGrade } from '../lib/distributionService';
 
 export default function AdminFamilyView() {
   const { id } = useParams();
@@ -126,7 +127,7 @@ export default function AdminFamilyView() {
                     <div style={{ fontWeight: 700 }}>{c.child_name}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '1rem' }}>
                       <span>🎂 {c.age} سنة</span>
-                      <span>🏫 {SCHOOL_STAGE_LABELS[c.school_stage || 'not_in_school']}</span>
+                      <span>🏫 {formatDetailedGrade(c.age || 0, c.school_stage)}</span>
                       {c.is_orphan && <span style={{ color: 'var(--gold)', fontWeight: 800 }}>⭐ يتيم</span>}
                     </div>
                   </div>

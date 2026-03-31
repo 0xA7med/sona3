@@ -141,3 +141,34 @@ function calculateCommission(amount: number, rules: CommissionRule[]): number {
   
   return 0;
 }
+
+/**
+ * Returns a detailed localized string for children's school grades (e.g., "5 ابتدائي")
+ */
+export function formatDetailedGrade(age: number, stage?: SchoolStage): string {
+  if (!age || age < 4) return 'قبل المدرسة';
+  if (age < 6) return 'حضانة / تمهيدي';
+  
+  const currentStage = stage || detectSchoolStage(age);
+  
+  if (currentStage === 'primary') {
+    const grade = age - 5;
+    return `${grade} ابتدائي`;
+  }
+  if (currentStage === 'preparatory') {
+    const grade = age - 11;
+    return `${grade} إعدادي`;
+  }
+  if (currentStage === 'secondary') {
+    const grade = age - 14;
+    return `${grade} ثانوي`;
+  }
+  if (currentStage === 'university') {
+    return 'جامعة';
+  }
+  if (currentStage === 'graduated') {
+    return 'خريج';
+  }
+  
+  return 'غير ملتحق بالتعليم';
+}

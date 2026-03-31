@@ -38,10 +38,10 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => voi
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: 60, scale: 0.9 }}
+      initial={{ opacity: 0, x: -40, scale: 0.9 }}
       animate={{ opacity: 1, x: 0,  scale: 1 }}
-      exit={{    opacity: 0, x: 60, scale: 0.9 }}
-      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+      exit={{    opacity: 0, x: -40, scale: 0.8 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       className={`toast toast-${t.type}`}
       role="alert"
     >

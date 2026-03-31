@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Check, ArrowRight, Zap } from 'lucide-react';
 import type { CaseAssignment } from '../types';
-import { calculateDistribution } from '../lib/distributionService';
+import { calculateDistribution, formatDetailedGrade } from '../lib/distributionService';
 
 interface FamilyDetailProps {
   assignment: CaseAssignment;
@@ -157,28 +157,52 @@ export default function FamilyDetail({
               </div>
 
               {/* Children List */}
-              <div className="section-title mb-sm">👨‍👩‍👧 أفراد العائلة المستفيدون</div>
+              <div className="section-title mb-sm">👨‍👩‍👧 تفاصيل استحقاق الأبناء</div>
               <div className="children-card">
                 <div className="children-card-header">
-                  <div className="children-card-title">قائمة الأبناء</div>
-                  <div className="section-count">{family.children?.length || 0}</div>
+                  <div className="children-card-title">توزيع المبالغ حسب الفئات</div>
+                  <div className="section-count">{breakdown.childrenBreakdown.length}</div>
                 </div>
                 
-                {(family.children ?? []).map((child: any) => (
-                  <div key={child.id} className="child-row-item">
+                {breakdown.childrenBreakdown.map((child: any) => (
+                  <div key={child.childId} className="child-row-item">
                     <div className="child-row-info">
-                      <div className="child-row-name">{child.child_name || 'طفل(ة)'}</div>
+                      <div className="child-row-name">{child.name || 'طفل(ة)'}</div>
                       <div className="child-row-meta">
                         <span>🎂 {child.age} سنوات</span>
                         <span>•</span>
-                        <span>🎓 {child.school_stage || 'غير محدد'}</span>
+                        <span>🎓 {formatDetailedGrade(child.age)}</span>
                       </div>
                     </div>
                     <div className="child-row-amount">
-                      {child.amount || 0} ج
+                      {child.amount.toLocaleString()} ج
                     </div>
                   </div>
                 ))}
+
+                <div 
+                  style={{ 
+                    marginTop: '1rem', padding: '0.75rem', 
+                    background: 'var(--gray-50)', borderRadius: '12px',
+                    display: 'flex', justifyContent: 'space-between',
+                    fontSize: '0.85rem', fontWeight: 700, color: 'var(--gray-600)'
+                  }}
+                >
+                  <span>رسوم خدمة التحويل</span>
+                  <span>{breakdown.fee} ج.م</span>
+                </div>
+
+                <div 
+                  style={{ 
+                    marginTop: '0.5rem', padding: '1rem', 
+                    background: 'var(--primary-light)', borderRadius: '14px',
+                    display: 'flex', justifyContent: 'space-between',
+                    fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-dark)'
+                  }}
+                >
+                  <span>الإجمالي النهائي</span>
+                  <span>{breakdown.total.toLocaleString()} ج.م</span>
+                </div>
               </div>
 
               {/* Info List */}

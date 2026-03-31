@@ -50,10 +50,10 @@ export default function AdminCampaignView() {
     if (!campaign || !id) return;
     setGenerating(true);
     try {
-      // Fetch all active families
+      // 1. Fetch ALL active families + their children for filtering
       const { data: families, error: fErr } = await supabase
         .from('families')
-        .select('id')
+        .select('*, children(*)')
         .eq('status', 'active');
 
       if (fErr) throw fErr;
@@ -62,7 +62,34 @@ export default function AdminCampaignView() {
         return;
       }
 
-      // Get existing assignment family_ids to avoid duplicates
+      // 2. Filter based on targeting rules
+      let eligibleFamilies = families;
+      
+      const isOrphansOnly = campaign.targeting_rules?.some((r: any) => r.field === 'is_orphan' && r.value === true);
+      if (isOrphansOnly) {
+        eligibleFamilies = families.filter(f => f.children?.some((c: any) => c.is_orphan));
+      }
+
+      // More complex filter: if auto-calculate, must match at least one child in brackets
+      if (campaign.is_auto_calculate) {
+        eligibleFamilies = eligibleFamilies.filter(f => {
+          if (!f.children || f.children.length === 0) return false;
+          return f.children.some((child: any) => {
+            const age = child.age ?? 0;
+            if (campaign.distribution_mode === 'school_stage') {
+              const grade = Math.max(1, Math.min(12, age - 5));
+              return (campaign.stage_brackets || []).some((b: any) => {
+                if (b.stage) return b.stage === child.school_stage;
+                return grade >= (b.fromGrade || 1) && grade <= (b.toGrade || 12);
+              });
+            } else {
+              return (campaign.age_brackets || []).some((b: any) => age >= b.from && age <= b.to);
+            }
+          });
+        });
+      }
+
+      // 3. Get existing assignment family_ids
       const { data: existingRaw } = await supabase
         .from('case_assignments')
         .select('family_id')
@@ -70,7 +97,7 @@ export default function AdminCampaignView() {
 
       const existingIds = new Set((existingRaw || []).map((e: any) => e.family_id));
 
-      const newAssignments = families
+      const newAssignments = eligibleFamilies
         .filter((f: any) => !existingIds.has(f.id))
         .map((f: any) => ({
           campaign_id: id,
@@ -80,11 +107,11 @@ export default function AdminCampaignView() {
         }));
 
       if (newAssignments.length === 0) {
-        toast('جميع الأسر موجودة بالفعل في الحملة', 'info');
+        toast('جميع الأسر المؤهلة موجودة بالفعل في الحملة', 'info');
         return;
       }
 
-      // Insert in batches of 100
+      // 4. Batch insert
       const BATCH = 100;
       let inserted = 0;
       for (let i = 0; i < newAssignments.length; i += BATCH) {
@@ -94,7 +121,7 @@ export default function AdminCampaignView() {
         inserted += batch.length;
       }
 
-      toast(`✅ تم إضافة ${inserted} أسرة للحملة بنجاح`, 'success');
+      toast(`✅ تم إضافة ${inserted} أسرة مطابقة لشروط الحملة`, 'success');
       fetchDetails();
     } catch (err: any) {
       console.error(err);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Filter, MapPin, AlertCircle, Target } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { SOCIAL_STATUS_LABELS } from '../types';
+import { SOCIAL_STATUS_LABELS, calcPriorityScore } from '../types';
 
 export default function AdminTargeting() {
   const [families, setFamilies] = useState<any[]>([]);
@@ -22,13 +22,35 @@ export default function AdminTargeting() {
     try {
       const { data, error } = await supabase
         .from('families')
-        .select('*')
+        .select('*, children(id, is_orphan)')
         .eq('status', 'active');
 
       if (error) throw error;
-      setFamilies(data || []);
       
-      const uniqueZones = Array.from(new Set((data || []).map(f => f.governorate).filter(Boolean))) as string[];
+      const enriched = (data || []).map((f: any) => {
+        const children = f.children || [];
+        const orphanCount = children.filter((c: any) => c.is_orphan).length;
+        
+        // Calculate dynamic accurate score just in case DB is stale
+        const score = calcPriorityScore({
+          social_status: f.social_status,
+          has_chronic_illness: f.has_chronic_illness,
+          is_disabled: f.is_disabled,
+          children_count: children.length,
+          vulnerability_score: orphanCount * 10
+        });
+
+        return {
+          ...f,
+          _children_count: children.length,
+          _orphan_count: orphanCount,
+          _dynamic_score: score
+        };
+      });
+
+      setFamilies(enriched);
+      
+      const uniqueZones = Array.from(new Set(enriched.map(f => f.governorate).filter(Boolean))) as string[];
       setZones(uniqueZones);
     } finally {
       setLoading(false);
@@ -36,7 +58,7 @@ export default function AdminTargeting() {
   }
 
   const filtered = families.filter(f => {
-    if (f.priority_score < minPriority) return false;
+    if (f._dynamic_score < minPriority) return false;
     if (selectedZone !== 'all' && f.governorate !== selectedZone) return false;
     if (status !== 'all' && f.social_status !== status) return false;
     return true;
@@ -126,11 +148,11 @@ export default function AdminTargeting() {
                   </div>
                   <div style={{ 
                     padding: '0.4rem 0.8rem', borderRadius: '8px', 
-                    background: f.priority_score >= 70 ? 'var(--error-light)' : 'var(--primary-light)',
-                    color: f.priority_score >= 70 ? 'var(--error)' : 'var(--primary)',
+                    background: f._dynamic_score >= 70 ? 'var(--error-light)' : 'var(--primary-light)',
+                    color: f._dynamic_score >= 70 ? 'var(--error)' : 'var(--primary)',
                     fontWeight: 900, fontSize: '0.9rem'
                   }}>
-                    {f.priority_score} نقطة
+                    {f._dynamic_score} نقطة
                   </div>
                 </div>
               ))
