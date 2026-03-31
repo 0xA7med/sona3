@@ -199,7 +199,7 @@ export default function VolunteerHome() {
   };
 
   const handleAction = async (
-    action: 'no_answer' | 'unreachable' | 'completed' | 'view' | 'claim',
+    action: 'no_answer' | 'unreachable' | 'completed' | 'view' | 'claim' | 'undo_completed',
     assignmentId: string
   ) => {
     if (!profile || !selectedCamp) return;
@@ -240,10 +240,36 @@ export default function VolunteerHome() {
       no_answer:   'no_answer',
       unreachable: 'unreachable',
       completed:   'completed',
+      undo_completed: 'in_progress', // Revert to in_progress
     };
 
     const newStatus = statusMap[action];
     if (!newStatus) return;
+
+    // Handle Undo
+    if (action === 'undo_completed') {
+      const undoPayload = {
+        family_id: familyId,
+        user_id:   profile.id,
+        user_name: profile.full_name,
+        action_type: 'STATUS_CHANGED',
+        description: 'تراجع عن إتمام المهمة — إعادة الحالة لقيد التنفيذ',
+        campaign_id: asgn.campaign_id,
+      };
+
+      try {
+        await supabase.from('case_assignments')
+          .update({ status: 'in_progress' })
+          .eq('id', assignmentId);
+        await supabase.from('case_history').insert(undoPayload);
+        fetchAssignments(selectedCamp.id);
+        setSelectedAsgn(null);
+        toast('🔄 تم التراجع وإعادة الحالة لقيد التنفيذ', 'info');
+      } catch (err) {
+        toast('حدث خطأ أثناء التراجع', 'error');
+      }
+      return;
+    }
 
     // For no_answer/unreachable: release case back to pool for other volunteers
     if (action === 'no_answer' || action === 'unreachable') {

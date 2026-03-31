@@ -7,7 +7,7 @@ interface FamilyCardProps {
   assignment: CaseAssignment;
   lock?: CaseLock | null;
   currentUserId?: string;
-  onAction?: (action: 'no_answer' | 'unreachable' | 'completed' | 'view' | 'claim', assignmentId: string) => void;
+  onAction?: (action: 'no_answer' | 'unreachable' | 'completed' | 'view' | 'claim' | 'undo_completed', assignmentId: string) => void;
   showQuickActions?: boolean;
   index?: number;
 }

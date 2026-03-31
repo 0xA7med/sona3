@@ -10,7 +10,7 @@ interface FamilyDetailProps {
   isOpen: boolean;
   currentUserId?: string;
   onClose: () => void;
-  onAction: (action: 'no_answer' | 'unreachable' | 'completed') => void;
+  onAction: (action: 'no_answer' | 'unreachable' | 'completed' | 'undo_completed') => void;
 }
 
 export default function FamilyDetail({
@@ -125,7 +125,22 @@ export default function FamilyDetail({
                   </button>
                 </div>
 
-                {isMyAssignment ? (
+                {assignment.status === 'completed' ? (
+                  <div style={{ padding: '1rem', background: 'var(--primary-light)', borderRadius: '16px', border: '1px solid var(--primary)', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 800, color: 'var(--primary-dark)', marginBottom: '1rem' }}>
+                       <Check size={20} /> تم إتمام هذه المهمة بنجاح ✅
+                    </div>
+                    {isMyAssignment && (
+                      <button 
+                        className="btn btn-ghost w-full"
+                        onClick={() => onAction('undo_completed')}
+                        style={{ background: 'white', color: 'var(--gray-600)', border: '1px solid var(--gray-300)', fontSize: '0.85rem', fontWeight: 700 }}
+                      >
+                         🔄 تراجع عن الإتمام
+                      </button>
+                    )}
+                  </div>
+                ) : isMyAssignment ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <button 
                       className="btn btn-primary w-full"
