@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, CheckCircle, BarChart3, Plus, RefreshCw, Baby, Heart, BookOpen, Megaphone } from 'lucide-react';
+import { 
+  Users, CheckCircle, BarChart3, Plus, RefreshCw, 
+  Baby, Heart, BookOpen, Megaphone, Edit3 
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
@@ -32,41 +35,36 @@ export default function AdminHome() {
   });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [pendingVolunteers, setPendingVolunteers] = useState(0);
+  const [pendingUpdates, setPendingUpdates] = useState(0);
   const [loading,   setLoading]   = useState(true);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [
-        { count: families },
-        { data: activeCamps },
-        { count: completed },
-        { count: volunteers },
-        { data: assignmentsRaw },
-        { count: children },
-        { count: pendingCount }
-      ] = await Promise.all([
+      const results = await Promise.all([
         supabase.from('families').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('campaigns').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(5),
         supabase.from('case_assignments').select('*', { count: 'exact', head: true }).eq('status', 'completed').gte('completed_at', new Date(new Date().setDate(1)).toISOString()),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'volunteer').eq('is_active', true),
         supabase.from('case_assignments').select('campaign:campaigns(amount_per_family)').eq('status', 'completed'),
         supabase.from('children').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'volunteer').eq('is_active', false)
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'volunteer').eq('is_active', false),
+        supabase.from('data_update_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
       ]);
 
-      const distributed = (assignmentsRaw ?? []).reduce((acc, curr: any) => acc + (curr.campaign?.amount_per_family || 0), 0);
+      const distributed = (results[4].data ?? []).reduce((acc, curr: any) => acc + (curr.campaign?.amount_per_family || 0), 0);
       
       setStats({
-        totalFamilies: families ?? 0,
-        activeCampaigns: activeCamps?.length ?? 0,
-        completedThisMonth: completed ?? 0,
-        totalVolunteers: volunteers ?? 0,
+        totalFamilies: results[0].count ?? 0,
+        activeCampaigns: results[1].data?.length ?? 0,
+        completedThisMonth: results[2].count ?? 0,
+        totalVolunteers: results[3].count ?? 0,
         totalAmountDistributed: distributed,
-        totalChildren: children ?? 0,
+        totalChildren: results[5].count ?? 0,
       });
-      setCampaigns(activeCamps ?? []);
-      setPendingVolunteers(pendingCount ?? 0);
+      setCampaigns(results[1].data ?? []);
+      setPendingVolunteers(results[6].count ?? 0);
+      setPendingUpdates(results[7].count ?? 0);
     } catch {
       toast('حدث خطأ في تحميل البيانات', 'error');
     } finally {
@@ -92,28 +90,33 @@ export default function AdminHome() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={() => navigate('/admin/volunteers')}
-          style={{
-            background: 'rgba(239, 68, 68, 0.08)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            borderRadius: '16px', padding: '1rem',
-            marginBottom: '1rem', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            backdropFilter: 'blur(10px)',
-          }}
+          className="alert-banner danger"
+          style={{ marginBottom: '0.75rem', cursor: 'pointer' }}
         >
-          <div style={{
-            width: 40, height: 40, borderRadius: '12px',
-            background: '#ef4444', color: 'white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-          }}>
-            <Users size={20} />
+          <div className="alert-icon"><Users size={20} /></div>
+          <div className="alert-body">
+            <div className="alert-title">تنبيه: متطوعون جدد! 📢</div>
+            <div className="alert-text">هناك {pendingVolunteers} طلبات تسجيل جديدة بحاجة للمراجعة.</div>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#991b1b' }}>تنبيه: متطوعون جدد! 📢</div>
-            <div style={{ fontSize: '0.72rem', color: '#b91c1c', opacity: 0.8 }}>هناك {pendingVolunteers} طلبات تسجيل جديدة بحاجة للمراجعة والقبول.</div>
+          <div className="alert-action">مراجعة ←</div>
+        </motion.div>
+      )}
+
+      {/* ── Pending Updates Alert ── */}
+      {pendingUpdates > 0 && (
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          onClick={() => navigate('/admin/updates')}
+          className="alert-banner warning"
+          style={{ marginBottom: '1rem', cursor: 'pointer' }}
+        >
+          <div className="alert-icon" style={{ background: 'var(--gold)', color: 'white' }}><Edit3 size={20} /></div>
+          <div className="alert-body">
+            <div className="alert-title" style={{ color: '#92400e' }}>طلبات تعديل بيانات ✏️</div>
+            <div className="alert-text" style={{ color: '#b45309' }}>هناك {pendingUpdates} طلبات تعديل مرسلة من المتطوعين بانتظار موافقتك.</div>
           </div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444' }}>مراجعة ←</div>
+          <div className="alert-action" style={{ color: '#92400e' }}>مراجعة ←</div>
         </motion.div>
       )}
 

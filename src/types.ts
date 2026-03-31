@@ -70,10 +70,32 @@ export interface Child {
   age?: number;
   gender?: Gender;
   grade_level?: string;
+  educational_grade?: string;
   school_stage?: SchoolStage;
   is_orphan: boolean;
   notes?: string;
   created_at: string;
+}
+
+/* ── Data Update Requests ──────────────────────────────────── */
+export type UpdateRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface DataUpdateRequest {
+  id: string;
+  family_id: string;
+  volunteer_id: string;
+  requested_changes: {
+    family?: Partial<Family>;
+    children?: Array<Partial<Child> & { id?: string }>;
+  };
+  status: UpdateRequestStatus;
+  rejection_reason?: string;
+  created_at: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  // Joined
+  volunteer?: Profile;
+  family?: Family;
 }
 
 /* ── Campaigns ─────────────────────────────────────────────── */

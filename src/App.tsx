@@ -26,6 +26,7 @@ import AdminSettings from './pages/AdminSettings';
 import Profile         from './pages/Profile';
 import VolunteerTasks  from './pages/VolunteerTasks';
 import AdminVolunteerLog from './pages/AdminVolunteerLog';
+import AdminDataUpdates from './pages/AdminDataUpdates';
 
 function AppContent() {
   const { user, loading, profile } = useAuthStore();
@@ -95,6 +96,7 @@ function AppContent() {
           <Route path="/admin/transactions"    element={user && role === 'admin' ? <AdminTransactions /> : <Navigate to="/login" />} />
           <Route path="/admin/reports"         element={user && role === 'admin' ? <AdminReports />    : <Navigate to="/login" />} />
           <Route path="/admin/settings"        element={user && role === 'admin' ? <AdminSettings />   : <Navigate to="/login" />} />
+          <Route path="/admin/updates"         element={user && role === 'admin' ? <AdminDataUpdates /> : <Navigate to="/login" />} />
           <Route path="/admin/*"               element={user && role === 'admin' ? <AdminHome />       : <Navigate to="/login" />} />
 
           {/* Volunteer Routes */}

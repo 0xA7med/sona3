@@ -1246,3 +1246,42 @@ h1, h2, h3, h4, h5 {
 .toast-error   { border-right: 4px solid var(--error); }
 .toast-warning { border-right: 4px solid var(--warning); }
 .toast-info    { border-right: 4px solid var(--info); }
+
+/* ================================================================
+   Alert Banners
+   ================================================================ */
+.alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+.alert-banner:active { transform: scale(0.98); }
+.alert-banner.danger {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.alert-banner.warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+.alert-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.danger .alert-icon { background: #ef4444; color: white; }
+.warning .alert-icon { background: #f59e0b; color: white; }
+.alert-body { flex: 1; min-width: 0; }
+.alert-title { font-size: 0.85rem; font-weight: 900; margin-bottom: 2px; }
+.alert-text { font-size: 0.72rem; opacity: 0.8; font-weight: 500; }
+.alert-action { font-size: 0.75rem; font-weight: 800; white-space: nowrap; }

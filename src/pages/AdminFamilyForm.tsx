@@ -193,6 +193,7 @@ export default function AdminFamilyForm() {
         gender: c.gender || null,
         age: c.age || 0,
         school_stage: c.school_stage || 'not_in_school',
+        educational_grade: c.educational_grade || null,
         is_orphan: c.is_orphan || false
       }));
 
@@ -373,6 +374,16 @@ export default function AdminFamilyForm() {
                     <select className="form-select" value={c.school_stage} onChange={e => updateChild(i, { school_stage: e.target.value as SchoolStage })}>
                       {Object.entries(SCHOOL_STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
+                  </div>
+                  <div className="form-group" style={{ margin: 0, flex: 2 }}>
+                    <label className="form-label">الفصل الدراسي (اختياري)</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="مثل: تانية إعدادي"
+                      value={c.educational_grade || ''} 
+                      onChange={e => updateChild(i, { educational_grade: e.target.value })} 
+                    />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>

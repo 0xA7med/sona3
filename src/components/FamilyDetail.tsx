@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Check, ArrowRight, Zap } from 'lucide-react';
 import type { CaseAssignment } from '../types';
 import { calculateDistribution, formatDetailedGrade } from '../lib/distributionService';
+import VolunteerFamilyEditModal from './VolunteerFamilyEditModal';
 
 interface FamilyDetailProps {
   assignment: CaseAssignment;
@@ -18,6 +20,7 @@ export default function FamilyDetail({
   onClose,
   onAction
 }: FamilyDetailProps) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { family, campaign } = assignment;
   if (!family || !campaign) return null;
 
@@ -132,6 +135,14 @@ export default function FamilyDetail({
                       <Check size={20} /> تأكيد إتمام التحويل
                     </button>
                     
+                    <button 
+                      className="btn btn-secondary w-full"
+                      onClick={() => setIsEditModalOpen(true)}
+                      style={{ height: '48px', fontSize: '0.9rem', fontWeight: 800, background: 'var(--white)', color: 'var(--primary)', border: '1px solid var(--primary)' }}
+                    >
+                      ✏️ تعديل بيانات الأسرة المعلقة
+                    </button>
+                    
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                       <button 
                          className="btn btn-ghost" 
@@ -171,7 +182,7 @@ export default function FamilyDetail({
                       <div className="child-row-meta">
                         <span>🎂 {child.age} سنوات</span>
                         <span>•</span>
-                        <span>🎓 {formatDetailedGrade(child.age)}</span>
+                        <span>🎓 {formatDetailedGrade(child)}</span>
                       </div>
                     </div>
                     <div className="child-row-amount">
@@ -237,6 +248,14 @@ export default function FamilyDetail({
               )}
             </div>
           </motion.div>
+          
+          {/* Volunteer Update Request Modal */}
+          <VolunteerFamilyEditModal 
+            isOpen={isEditModalOpen} 
+            onClose={() => setIsEditModalOpen(false)} 
+            family={family}
+            currentAssignmentId={assignment.id}
+          />
         </>
       )}
     </AnimatePresence>

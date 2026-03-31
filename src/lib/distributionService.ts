@@ -145,11 +145,14 @@ function calculateCommission(amount: number, rules: CommissionRule[]): number {
 /**
  * Returns a detailed localized string for children's school grades (e.g., "5 ابتدائي")
  */
-export function formatDetailedGrade(age: number, stage?: SchoolStage): string {
+export function formatDetailedGrade(child: Child): string {
+  if (child.educational_grade) return child.educational_grade;
+  
+  const age = getChildAge(child);
   if (!age || age < 4) return 'قبل المدرسة';
   if (age < 6) return 'حضانة / تمهيدي';
   
-  const currentStage = stage || detectSchoolStage(age);
+  const currentStage = child.school_stage || detectSchoolStage(age);
   
   if (currentStage === 'primary') {
     const grade = age - 5;
