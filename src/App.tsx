@@ -25,7 +25,6 @@ import AdminTransactions from './pages/AdminTransactions';
 import AdminSettings from './pages/AdminSettings';
 import Profile         from './pages/Profile';
 import VolunteerTasks  from './pages/VolunteerTasks';
-import VolunteerCampaignTasks from './pages/VolunteerCampaignTasks';
 import AdminVolunteerLog from './pages/AdminVolunteerLog';
 
 function AppContent() {
@@ -101,7 +100,6 @@ function AppContent() {
           {/* Volunteer Routes */}
           <Route path="/volunteer"       element={user ? <VolunteerHome />  : <Navigate to="/login" />} />
           <Route path="/volunteer/tasks" element={user ? <VolunteerTasks /> : <Navigate to="/login" />} />
-          <Route path="/volunteer/campaigns/:id" element={user ? <VolunteerCampaignTasks /> : <Navigate to="/login" />} />
           <Route path="/volunteer/*"     element={user ? <VolunteerHome />  : <Navigate to="/login" />} />
 
           {/* Root redirect */}
