@@ -210,19 +210,61 @@ export default function AdminCampaignForm() {
       if (isEdit) {
         const { error } = await supabase.from('campaigns').update(campaignData).eq('id', id);
         if (error) throw error;
+        toast('تم تحديث الحملة بنجاح', 'success');
+        navigate('/admin/campaigns');
       } else {
-        const { error } = await supabase.from('campaigns').insert(campaignData);
+        const { data: newCamp, error } = await supabase
+          .from('campaigns')
+          .insert(campaignData)
+          .select('id')
+          .single();
         if (error) throw error;
-      }
 
-      toast(isEdit ? 'تم تحديث الحملة بنجاح' : 'تم إنشاء الحملة بنجاح', 'success');
-      navigate('/admin/campaigns');
+        // ── Auto-generate case_assignments for all matching families ──
+        let familiesQuery = supabase.from('families').select('id').eq('status', 'active');
+        if (isOrphansOnly) {
+          // Only families that HAVE at least one orphan child
+          const { data: orphanFamilies } = await supabase
+            .from('children')
+            .select('family_id')
+            .eq('is_orphan', true);
+          const orphanFamilyIds = [...new Set((orphanFamilies || []).map((c: any) => c.family_id))];
+          if (orphanFamilyIds.length > 0) {
+            familiesQuery = supabase.from('families').select('id').in('id', orphanFamilyIds).eq('status', 'active');
+          } else {
+            // No orphan families — skip assignment generation
+            toast('✅ تم إنشاء الحملة. لا توجد أسر مستحقة حالياً.', 'success');
+            navigate(`/admin/campaigns/${newCamp.id}`);
+            return;
+          }
+        }
+
+        const { data: families } = await familiesQuery;
+        if (families && families.length > 0) {
+          const assignments = families.map((f: any) => ({
+            campaign_id: newCamp.id,
+            family_id: f.id,
+            status: 'pending',
+            assigned_at: new Date().toISOString(),
+          }));
+          const BATCH = 100;
+          for (let i = 0; i < assignments.length; i += BATCH) {
+            await supabase.from('case_assignments').insert(assignments.slice(i, i + BATCH));
+          }
+          toast(`✅ تم إنشاء الحملة وتحميل ${families.length} أسرة تلقائياً`, 'success');
+        } else {
+          toast('✅ تم إنشاء الحملة. لا توجد أسر نشطة حالياً.', 'success');
+        }
+
+        navigate(`/admin/campaigns/${newCamp.id}`);
+      }
     } catch (err: any) {
       toast(err.message || 'حدث خطأ أثناء الحفظ', 'error');
     } finally {
       setSaving(false);
     }
   };
+
 
   const handleNextStep = () => {
     if (currentStep === 1 && !name) {

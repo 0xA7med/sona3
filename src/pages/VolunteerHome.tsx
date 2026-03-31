@@ -75,6 +75,7 @@ export default function VolunteerHome() {
 
         const statsMap: Record<string, { total: number; completed: number }> = {};
         (stats || []).forEach((s: any) => {
+          if (s.status === 'skipped') return; // Ignore excluded cases
           if (!statsMap[s.campaign_id]) statsMap[s.campaign_id] = { total: 0, completed: 0 };
           statsMap[s.campaign_id].total++;
           if (s.status === 'completed') statsMap[s.campaign_id].completed++;
@@ -111,6 +112,7 @@ export default function VolunteerHome() {
           campaign:campaigns(*)
         `)
         .eq('campaign_id', campaignId)
+        .neq('status', 'skipped')
         .order('status', { ascending: true });
 
       if (error) throw error;
