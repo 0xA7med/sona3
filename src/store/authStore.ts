@@ -25,7 +25,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   
   loadProfile: async (userId) => {
     try {
-      set({ loading: true });
       
       const { data, error } = await supabase
         .from('profiles')

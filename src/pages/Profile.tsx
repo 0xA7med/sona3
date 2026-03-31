@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { 
   LogOut, User, Phone, MapPin, Shield, Calendar, 
   CheckCircle, Clock, Heart, RefreshCw, Save, Edit2, X,
-  Award, Zap, Star
+  Zap, Star
 } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { toast } from '../components/Toast';
@@ -394,26 +394,65 @@ export default function Profile() {
           </AnimatePresence>
         </motion.div>
 
-        {/* Levels / Badges Placeholder */}
-        <motion.div 
-          variants={cardVariants}
-          style={{ 
-            marginTop: '1.5rem', padding: '1.25rem', borderRadius: '24px', 
-            background: 'linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%)',
-            display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(0,0,0,0.03)'
-          }}
-        >
-          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-            <Award size={24} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 800 }}>المستوى الفضي</h4>
-            <div style={{ height: 6, background: 'rgba(0,0,0,0.05)', borderRadius: 3, marginTop: 6, position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: '65%', background: '#d4af37' }} />
-            </div>
-            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 6 }}>أنجز 5 مهام إضافية للوصول للمستوى الذهبي 🏆</p>
-          </div>
-        </motion.div>
+        {/* Achievement Level — Real Data */}
+        {profile?.role !== 'admin' && (() => {
+          const completed = stats.completed;
+          const levels = [
+            { min: 0,   max: 50,   label: 'مبتدئ',   next: 'فضي',    icon: '🌱', color: '#64748b', bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', bar: '#94a3b8', nextAt: 50   },
+            { min: 50,  max: 150,  label: 'فضي',     next: 'ذهبي',   icon: '🥈', color: '#475569', bg: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', bar: '#94a3b8', nextAt: 150  },
+            { min: 150, max: 400,  label: 'ذهبي',    next: 'بلاتيني', icon: '🥇', color: '#b45309', bg: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)', bar: '#d4af37', nextAt: 400  },
+            { min: 400, max: 9999, label: 'بلاتيني', next: null,      icon: '💎', color: '#0891b2', bg: 'linear-gradient(135deg, #ecfeff 0%, #cffafe 100%)', bar: '#06b6d4', nextAt: null },
+          ];
+          const level = levels.find(l => completed >= l.min && completed < l.max) || levels[0];
+          const progress = level.nextAt
+            ? Math.min(100, Math.round(((completed - level.min) / (level.nextAt - level.min)) * 100))
+            : 100;
+          const remaining = level.nextAt ? level.nextAt - completed : 0;
+
+          return (
+            <motion.div
+              variants={cardVariants}
+              style={{
+                marginTop: '1.5rem', padding: '1.25rem', borderRadius: '20px',
+                background: level.bg,
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                border: '1px solid rgba(0,0,0,0.05)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.6rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', flexShrink: 0,
+              }}>
+                {level.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--primary-dark)' }}>
+                    المستوى: {level.label}
+                  </h4>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: level.color }}>
+                    {loading ? '…' : completed} مهمة
+                  </span>
+                </div>
+                <div style={{ height: 7, background: 'rgba(0,0,0,0.07)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', width: `${loading ? 0 : progress}%`,
+                    background: level.bar, borderRadius: 4,
+                    transition: 'width 0.8s cubic-bezier(0.34,1.56,0.64,1)',
+                  }} />
+                </div>
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 5 }}>
+                  {level.nextAt
+                    ? loading ? '...' : `تحتاج ${remaining} مهمة إضافية للوصول للمستوى «${level.next}» ${level.next === 'ذهبي' ? '🥇' : '💎'}`
+                    : '🏆 أنت في القمة! المستوى الأعلى'
+                  }
+                </p>
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {/* Admin System Management */}
         {profile?.role === 'admin' && (
