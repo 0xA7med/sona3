@@ -127,7 +127,7 @@ export default function AdminFamilyView() {
                     <div style={{ fontWeight: 700 }}>{c.child_name}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '1rem' }}>
                       <span>🎂 {c.age} سنة</span>
-                      <span>🏫 {formatDetailedGrade(c.age || 0, c.school_stage)}</span>
+                      <span>🏫 {formatDetailedGrade(c)}</span>
                       {c.is_orphan && <span style={{ color: 'var(--gold)', fontWeight: 800 }}>⭐ يتيم</span>}
                     </div>
                   </div>
