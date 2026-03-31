@@ -105,7 +105,7 @@ export default function VolunteerHome() {
             id, sequential_id, mother_name, national_id,
             phone, governorate, district, social_status,
             has_chronic_illness, is_disabled, priority_score,
-            status, notes, total_amount,
+            status, notes,
             children:children (id, is_orphan, school_stage, child_name, age)
           ),
           volunteer:profiles(full_name),

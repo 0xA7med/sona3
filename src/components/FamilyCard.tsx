@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import type { CaseAssignment, CaseLock } from '../types';
 import { getPriorityLevel } from '../types';
+import { calculateDistribution } from '../lib/distributionService';
 
 interface FamilyCardProps {
   assignment: CaseAssignment;
@@ -49,10 +50,9 @@ export default function FamilyCard({
     : isAssignedToMe ? 'موكلة إليك ⭐️'
     : 'متاحة للحجز 📥';
 
-  // Calculate total amount (base + commission)
-  // Since we don't have the exact campaign logic here yet, we'll use a placeholder or derived value
-  // In the real app, this should come from the assignment/family data
-  const totalAmount = (family as any).total_amount || 0;
+  // Calculate total amount dynamically
+  const distribution = assignment.campaign ? calculateDistribution(family, assignment.campaign) : null;
+  const totalAmount = distribution?.total || (family as any).total_amount || 0;
 
   return (
     <motion.div

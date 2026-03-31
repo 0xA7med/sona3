@@ -151,10 +151,12 @@ export default function VolunteerTasks() {
       
       // Log to case_history
       if (familyId && profile?.id) {
+        const currentTask = tasks.find(t => t.id === taskId);
         let actionType = 'STATUS_CHANGED';
         if (newStatus === 'completed') actionType = 'TRANSFER_DONE';
         if (newStatus === 'no_answer') actionType = 'CALLED_NO_ANSWER';
         if (newStatus === 'unreachable') actionType = 'UNREACHABLE';
+        if (newStatus === 'in_progress' && currentTask?.status === 'completed') actionType = 'UNDO_COMPLETED';
 
         await supabase.from('case_history').insert({
           family_id: familyId,
@@ -162,8 +164,7 @@ export default function VolunteerTasks() {
           user_id: profile.id,
           user_name: profile.full_name,
           action_type: actionType,
-          description: `تغيير الحالة إلى ${newStatus}`,
-          metadata: { status: newStatus }
+          description: actionType === 'UNDO_COMPLETED' ? 'تراجع عن الإتمام' : `تغيير الحالة إلى ${newStatus}`
         });
       }
 
@@ -349,8 +350,21 @@ export default function VolunteerTasks() {
                     </button>
                   </>
                 ) : (
-                  <div style={{ width: '100%', textAlign: 'center', padding: '0.75rem', background: '#f0fdf4', color: '#16a34a', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem' }}>
-                    ✨ المهمة مكتملة
+                  <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, textAlign: 'center', padding: '0.75rem', background: '#f0fdf4', color: '#16a34a', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem' }}>
+                      ✨ المهمة مكتملة
+                    </div>
+                    <button 
+                      className="btn btn-ghost btn-sm"
+                      style={{ height: '42px', padding: '0 1rem', borderRadius: '12px', background: '#fef2f2', color: '#dc2626' }}
+                      onClick={() => {
+                        if (window.confirm('هل تريد التراجع عن إتمام هذه المهمة؟')) {
+                          updateStatus(task.id, 'in_progress', task.family.id, task.campaign.id);
+                        }
+                      }}
+                    >
+                      تراجع
+                    </button>
                   </div>
                 )}
               </div>
