@@ -8,7 +8,8 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
-import type { Campaign } from '../types';
+import { calculateDistribution } from '../lib/distributionService';
+import type { Campaign, Family } from '../types';
 
 interface DashboardStats {
   totalFamilies: number;
@@ -46,13 +47,28 @@ export default function AdminHome() {
         supabase.from('campaigns').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(5),
         supabase.from('case_assignments').select('*', { count: 'exact', head: true }).eq('status', 'completed').gte('completed_at', new Date(new Date().setDate(1)).toISOString()),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'volunteer').eq('is_active', true),
-        supabase.from('case_assignments').select('campaign:campaigns(amount_per_family)').eq('status', 'completed'),
+        // Fetch completed assignments WITH campaign brackets + family children for accurate calculation
+        supabase.from('case_assignments')
+          .select(`
+            campaign:campaigns(id, amount_per_family, is_auto_calculate, distribution_mode,
+              age_brackets, stage_brackets, children_brackets, commission_rules, targeting_rules),
+            family:families(id, children(id, child_name, age, is_orphan, school_stage, birth_date, national_id))
+          `)
+          .eq('status', 'completed'),
         supabase.from('children').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'volunteer').eq('is_active', false),
         supabase.from('data_update_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
       ]);
 
-      const distributed = (results[4].data ?? []).reduce((acc, curr: any) => acc + (curr.campaign?.amount_per_family || 0), 0);
+      // Accurate distributed amount — uses dynamic calculateDistribution for auto-calculate campaigns
+      const distributed = (results[4].data ?? []).reduce((acc: number, curr: any) => {
+        if (!curr.campaign) return acc;
+        if (curr.campaign.is_auto_calculate && curr.family) {
+          const dist = calculateDistribution(curr.family as Family, curr.campaign as Campaign);
+          return acc + dist.baseAmount;
+        }
+        return acc + (curr.campaign.amount_per_family || 0);
+      }, 0);
       
       setStats({
         totalFamilies: results[0].count ?? 0,

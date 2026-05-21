@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
+import { calculateDistribution } from '../lib/distributionService';
+import type { Campaign, Family } from '../types';
 
 export default function AdminReports() {
   const [stats, setStats] = useState({
@@ -38,7 +40,14 @@ export default function AdminReports() {
         { data: childrenData },
         { data: weeklyRaw }
       ] = await Promise.all([
-        supabase.from('case_assignments').select('id, status, campaign:campaigns(amount_per_family)').eq('status', 'completed'),
+        supabase.from('case_assignments')
+          .select(`
+            id, status,
+            campaign:campaigns(id, amount_per_family, is_auto_calculate, distribution_mode,
+              age_brackets, stage_brackets, children_brackets, commission_rules, targeting_rules),
+            family:families(id, children(id, child_name, age, is_orphan, school_stage, birth_date, national_id))
+          `)
+          .eq('status', 'completed'),
         supabase.from('families').select('*', { count: 'exact', head: true }),
         supabase.from('campaigns').select('id').eq('status', 'active'),
         supabase.from('children').select('is_orphan'),
@@ -48,7 +57,15 @@ export default function AdminReports() {
           .gte('completed_at', sevenDaysAgo.toISOString())
       ]);
 
-      const totalValue = (assignments ?? []).reduce((acc, curr: any) => acc + (curr.campaign?.amount_per_family || 0), 0);
+      // Accurate total: dynamic calculation for auto-calculate campaigns
+      const totalValue = (assignments ?? []).reduce((acc: number, curr: any) => {
+        if (!curr.campaign) return acc;
+        if (curr.campaign.is_auto_calculate && curr.family) {
+          const dist = calculateDistribution(curr.family as Family, curr.campaign as Campaign);
+          return acc + dist.baseAmount;
+        }
+        return acc + (curr.campaign.amount_per_family || 0);
+      }, 0);
       const orphans = (childrenData ?? []).filter(c => c.is_orphan).length;
 
       // Group by district

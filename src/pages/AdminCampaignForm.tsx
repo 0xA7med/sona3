@@ -44,7 +44,7 @@ export default function AdminCampaignForm() {
   
   // Advanced Targeting & Distribution
   const [isAutoCalculate, setIsAutoCalculate] = useState(true);
-  const [distributionMode, setDistributionMode] = useState<'age' | 'school_stage'>('age');
+  const [distributionMode, setDistributionMode] = useState<'age' | 'school_stage' | 'children_count'>('age');
   const [isOrphansOnly, setIsOrphansOnly] = useState(false);
   
   const [ageBrackets, setAgeBrackets] = useState<any[]>([
@@ -56,6 +56,13 @@ export default function AdminCampaignForm() {
   const [stageBrackets, setStageBrackets] = useState<any[]>([
     { fromGrade: 1, toGrade: 6, amount: 500 },
     { fromGrade: 7, toGrade: 9, amount: 700 }
+  ]);
+
+  const [childrenBrackets, setChildrenBrackets] = useState<any[]>([
+    { fromCount: 1, toCount: 1, amount: 200 },
+    { fromCount: 2, toCount: 2, amount: 300 },
+    { fromCount: 3, toCount: 3, amount: 350 },
+    { fromCount: 4, toCount: 99, amount: 400 }
   ]);
 
   const [commissionRules, setCommissionRules] = useState<any[]>([
@@ -100,6 +107,7 @@ export default function AdminCampaignForm() {
       
       if (c.age_brackets?.length) setAgeBrackets(c.age_brackets);
       if (c.stage_brackets?.length) setStageBrackets(c.stage_brackets);
+      if (c.children_brackets?.length) setChildrenBrackets(c.children_brackets);
       if (c.commission_rules?.length) setCommissionRules(c.commission_rules);
     } catch (err) {
       toast('تعذر تحميل بيانات الحملة', 'error');
@@ -121,24 +129,39 @@ export default function AdminCampaignForm() {
     // Group by family to apply commission
     const familyDistributions: Record<string, number> = {};
 
-    filteredChildren.forEach(child => {
-      let childAmount = 0;
-      if (distributionMode === 'age' && child.age !== undefined) {
-        const bracket = ageBrackets.find(b => child.age! >= (Number(b.from)||0) && child.age! <= (Number(b.to)||0));
-        if (bracket) childAmount = Number(bracket.amount) || 0;
-      } else if (distributionMode === 'school_stage') {
-        const grade = child.age ? Math.max(1, Math.min(12, child.age - 5)) : 1;
-        const bracket = stageBrackets.find(b => {
-          if (b.stage) return b.stage === child.school_stage;
-          return grade >= (Number(b.fromGrade)||1) && grade <= (Number(b.toGrade)||12);
-        });
-        if (bracket) childAmount = Number(bracket.amount) || 0;
-      }
+    if (distributionMode === 'children_count') {
+      // Group children by family first
+      const familyChildrenCount: Record<string, number> = {};
+      filteredChildren.forEach(child => {
+        familyChildrenCount[child.family_id] = (familyChildrenCount[child.family_id] || 0) + 1;
+      });
 
-      if (childAmount > 0) {
-        familyDistributions[child.family_id] = (familyDistributions[child.family_id] || 0) + childAmount;
-      }
-    });
+      Object.entries(familyChildrenCount).forEach(([familyId, count]) => {
+        const bracket = childrenBrackets.find(b => count >= (Number(b.fromCount)||0) && count <= (Number(b.toCount)||0));
+        if (bracket) {
+          familyDistributions[familyId] = Number(bracket.amount) || 0;
+        }
+      });
+    } else {
+      filteredChildren.forEach(child => {
+        let childAmount = 0;
+        if (distributionMode === 'age' && child.age !== undefined) {
+          const bracket = ageBrackets.find(b => child.age! >= (Number(b.from)||0) && child.age! <= (Number(b.to)||0));
+          if (bracket) childAmount = Number(bracket.amount) || 0;
+        } else if (distributionMode === 'school_stage') {
+          const grade = child.age ? Math.max(1, Math.min(12, child.age - 5)) : 1;
+          const bracket = stageBrackets.find(b => {
+            if (b.stage) return b.stage === child.school_stage;
+            return grade >= (Number(b.fromGrade)||1) && grade <= (Number(b.toGrade)||12);
+          });
+          if (bracket) childAmount = Number(bracket.amount) || 0;
+        }
+
+        if (childAmount > 0) {
+          familyDistributions[child.family_id] = (familyDistributions[child.family_id] || 0) + childAmount;
+        }
+      });
+    }
 
     // Sum all families + their fees
     Object.values(familyDistributions).forEach(familyTotal => {
@@ -153,25 +176,39 @@ export default function AdminCampaignForm() {
     });
 
     return total;
-  }, [isAutoCalculate, children, isOrphansOnly, distributionMode, ageBrackets, stageBrackets, commissionRules]);
+  }, [isAutoCalculate, children, isOrphansOnly, distributionMode, ageBrackets, stageBrackets, childrenBrackets, commissionRules]);
 
   const beneficiariesCount = useMemo(() => {
     const list = isOrphansOnly ? children.filter(c => c.is_orphan) : children;
     const families = new Set();
-    list.forEach(c => {
-      if (distributionMode === 'age' && c.age !== undefined) {
-        if (ageBrackets.some(b => c.age! >= (Number(b.from)||0) && c.age! <= (Number(b.to)||0))) families.add(c.family_id);
-      } else if (distributionMode === 'school_stage') {
-        const grade = c.age ? Math.max(1, Math.min(12, c.age - 5)) : 1;
-        const valid = stageBrackets.some(b => {
-          if (b.stage) return b.stage === c.school_stage;
-          return grade >= (Number(b.fromGrade)||1) && grade <= (Number(b.toGrade)||12);
-        });
-        if (valid) families.add(c.family_id);
-      }
-    });
+
+    if (distributionMode === 'children_count') {
+      const familyChildrenCount: Record<string, number> = {};
+      list.forEach(c => {
+        familyChildrenCount[c.family_id] = (familyChildrenCount[c.family_id] || 0) + 1;
+      });
+
+      Object.entries(familyChildrenCount).forEach(([familyId, count]) => {
+        if (childrenBrackets.some(b => count >= (Number(b.fromCount)||0) && count <= (Number(b.toCount)||0))) {
+          families.add(familyId);
+        }
+      });
+    } else {
+      list.forEach(c => {
+        if (distributionMode === 'age' && c.age !== undefined) {
+          if (ageBrackets.some(b => c.age! >= (Number(b.from)||0) && c.age! <= (Number(b.to)||0))) families.add(c.family_id);
+        } else if (distributionMode === 'school_stage') {
+          const grade = c.age ? Math.max(1, Math.min(12, c.age - 5)) : 1;
+          const valid = stageBrackets.some(b => {
+            if (b.stage) return b.stage === c.school_stage;
+            return grade >= (Number(b.fromGrade)||1) && grade <= (Number(b.toGrade)||12);
+          });
+          if (valid) families.add(c.family_id);
+        }
+      });
+    }
     return families.size;
-  }, [children, isOrphansOnly, distributionMode, ageBrackets, stageBrackets]);
+  }, [children, isOrphansOnly, distributionMode, ageBrackets, stageBrackets, childrenBrackets]);
 
   // Bug Fix: Handle empty inputs properly so they don't immediately transform to '0'
   const handleNumChange = (val: string) => val === '' ? '' : Number(val);
@@ -188,6 +225,7 @@ export default function AdminCampaignForm() {
       // Clean up brackets before saving (ensure they are numbers)
       const cleanAgeBrackets = ageBrackets.map(b => ({ ...b, from: Number(b.from)||0, to: Number(b.to)||0, amount: Number(b.amount)||0 }));
       const cleanStageBrackets = stageBrackets.map(b => ({ ...b, fromGrade: Number(b.fromGrade)||1, toGrade: Number(b.toGrade)||12, amount: Number(b.amount)||0 }));
+      const cleanChildrenBrackets = childrenBrackets.map(b => ({ ...b, fromCount: Number(b.fromCount)||0, toCount: Number(b.toCount)||0, amount: Number(b.amount)||0 }));
       const cleanCommissionRules = commissionRules.map(r => ({ ...r, fromAmount: Number(r.fromAmount)||0, toAmount: Number(r.toAmount)||0, fee: Number(r.fee)||0 }));
 
       const campaignData = {
@@ -204,6 +242,7 @@ export default function AdminCampaignForm() {
         targeting_rules: targetingRules,
         age_brackets: cleanAgeBrackets,
         stage_brackets: cleanStageBrackets,
+        children_brackets: cleanChildrenBrackets,
         commission_rules: cleanCommissionRules,
       };
 
@@ -452,6 +491,9 @@ export default function AdminCampaignForm() {
                       <button type="button" className={`btn btn-sm ${distributionMode === 'school_stage' ? 'btn-primary' : 'btn-ghost'}`} style={{ flex: 1 }} onClick={() => setDistributionMode('school_stage')}>
                         <GraduationCap size={16} /> حسب الفصل
                       </button>
+                      <button type="button" className={`btn btn-sm ${distributionMode === 'children_count' ? 'btn-primary' : 'btn-ghost'}`} style={{ flex: 1 }} onClick={() => setDistributionMode('children_count')}>
+                        <Users size={16} /> حسب الأطفال
+                      </button>
                     </div>
 
                     {distributionMode === 'age' ? (
@@ -469,7 +511,7 @@ export default function AdminCampaignForm() {
                         ))}
                         <button type="button" className="btn btn-primary btn-sm w-full" onClick={() => setAgeBrackets([...ageBrackets, { from: '', to: '', amount: '' }])}><Plus size={16}/> إضافة شريحة</button>
                       </div>
-                    ) : (
+                    ) : distributionMode === 'school_stage' ? (
                       <div className="flex flex-col gap-4">
                         {stageBrackets.map((b, i) => (
                           <div key={i} className="glass-card" style={{ padding: '1rem', borderLeft: '3px solid var(--primary)', position: 'relative' }}>
@@ -483,6 +525,21 @@ export default function AdminCampaignForm() {
                           </div>
                         ))}
                         <button type="button" className="btn btn-primary btn-sm w-full" onClick={() => setStageBrackets([...stageBrackets, { fromGrade: 1, toGrade: 12, amount: '' }])}><Plus size={16}/> إضافة شريحة</button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {childrenBrackets.map((b, i) => (
+                          <div key={i} className="glass-card" style={{ padding: '1rem', borderLeft: '3px solid var(--primary)', position: 'relative' }}>
+                            <button type="button" className="btn btn-ghost text-error" style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', width: 28, height: 28, padding: 0 }} onClick={() => setChildrenBrackets(childrenBrackets.filter((_, idx) => idx !== i))}>✕</button>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '8px' }}>الشريحة #{i+1}</label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div><label style={{ fontSize: '0.65rem' }}>من عدد أطفال</label><input type="number" className="form-input" style={{ padding: '6px 10px' }} value={b.fromCount ?? ''} onChange={e => { const nb = [...childrenBrackets]; nb[i].fromCount = handleNumChange(e.target.value); setChildrenBrackets(nb); }}/></div>
+                              <div><label style={{ fontSize: '0.65rem' }}>إلى عدد أطفال</label><input type="number" className="form-input" style={{ padding: '6px 10px' }} value={b.toCount ?? ''} onChange={e => { const nb = [...childrenBrackets]; nb[i].toCount = handleNumChange(e.target.value); setChildrenBrackets(nb); }}/></div>
+                              <div className="col-span-2"><label style={{ fontSize: '0.65rem' }}>المبلغ المخصص للأسرة (ج.م)</label><input type="number" className="form-input" style={{ padding: '6px 10px', fontWeight: 'bold', color: 'var(--primary-dark)' }} value={b.amount ?? ''} onChange={e => { const nb = [...childrenBrackets]; nb[i].amount = handleNumChange(e.target.value); setChildrenBrackets(nb); }}/></div>
+                            </div>
+                          </div>
+                        ))}
+                        <button type="button" className="btn btn-primary btn-sm w-full" onClick={() => setChildrenBrackets([...childrenBrackets, { fromCount: '', toCount: '', amount: '' }])}><Plus size={16}/> إضافة شريحة</button>
                       </div>
                     )}
                   </div>

@@ -109,7 +109,7 @@ export interface TargetingRule {
   label?: string;
 }
 
-export type DistributionMode = 'age' | 'school_stage';
+export type DistributionMode = 'age' | 'school_stage' | 'children_count';
 
 export interface AgeBracket {
   from: number;
@@ -122,6 +122,12 @@ export interface StageBracket {
   stage?: SchoolStage;
   fromGrade?: number;
   toGrade?: number;
+  amount: number;
+}
+
+export interface ChildrenBracket {
+  fromCount: number;
+  toCount: number;
   amount: number;
 }
 
@@ -145,6 +151,7 @@ export interface Campaign {
   distribution_mode: DistributionMode;
   age_brackets: AgeBracket[];
   stage_brackets: StageBracket[];
+  children_brackets: ChildrenBracket[];
   commission_rules: CommissionRule[];
   is_auto_calculate: boolean;
   status: CampaignStatus;

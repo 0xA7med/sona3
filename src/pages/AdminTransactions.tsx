@@ -6,6 +6,8 @@ import {
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
 import { motion } from 'framer-motion';
+import { calculateDistribution } from '../lib/distributionService';
+import type { Campaign, Family } from '../types';
 
 export default function AdminTransactions() {
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -31,8 +33,9 @@ export default function AdminTransactions() {
           updated_at,
           volunteer_id,
           volunteer:profiles(full_name),
-          family:families(id, mother_name, sequential_id, district, governorate),
-          campaign:campaigns(id, name, amount_per_family)
+          family:families(id, mother_name, sequential_id, district, governorate, children(id, child_name, age, is_orphan, school_stage, birth_date, national_id)),
+          campaign:campaigns(id, name, amount_per_family, is_auto_calculate, distribution_mode,
+            age_brackets, stage_brackets, children_brackets, commission_rules, targeting_rules)
         `)
         .eq('status', 'completed')
         .order('updated_at', { ascending: false });
@@ -62,7 +65,16 @@ export default function AdminTransactions() {
     return matchesSearch && matchesCampaign;
   });
 
-  const totalAmount = filtered.reduce((sum, a) => sum + (a.campaign?.amount_per_family || 0), 0);
+  // Compute per-row amount dynamically
+  function getAssignmentAmount(a: any): number {
+    if (!a.campaign) return 0;
+    if (a.campaign.is_auto_calculate && a.family) {
+      return calculateDistribution(a.family as Family, a.campaign as Campaign).baseAmount;
+    }
+    return a.campaign.amount_per_family || 0;
+  }
+
+  const totalAmount = filtered.reduce((sum, a) => sum + getAssignmentAmount(a), 0);
 
   return (
     <div className="page-content">
@@ -195,7 +207,7 @@ export default function AdminTransactions() {
                     </td>
                     <td style={{ padding: '1.25rem' }}>
                       <div style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1.1rem' }}>
-                        {a.campaign?.amount_per_family || 0} <span style={{ fontSize: '0.7rem' }}>ج.م</span>
+                        {getAssignmentAmount(a).toLocaleString('ar-EG')} <span style={{ fontSize: '0.7rem' }}>ج.م</span>
                       </div>
                     </td>
                     <td style={{ padding: '1.25rem' }}>

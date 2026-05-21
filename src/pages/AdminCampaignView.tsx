@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Users, CreditCard, Activity, 
@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/Toast';
-import type { Campaign } from '../types';
+import { calculateDistribution } from '../lib/distributionService';
+import type { Campaign, Family } from '../types';
 
 export default function AdminCampaignView() {
   const { id } = useParams();
@@ -74,6 +75,16 @@ export default function AdminCampaignView() {
       if (campaign.is_auto_calculate) {
         eligibleFamilies = eligibleFamilies.filter(f => {
           if (!f.children || f.children.length === 0) return false;
+
+          if (campaign.distribution_mode === 'children_count') {
+            // For children_count mode: the family must have a count within any bracket range
+            const eligibleKids = isOrphansOnly
+              ? f.children.filter((c: any) => c.is_orphan)
+              : f.children;
+            const count = eligibleKids.length;
+            return (campaign.children_brackets || []).some((b: any) => count >= b.fromCount && count <= b.toCount);
+          }
+
           return f.children.some((child: any) => {
             const age = child.age ?? 0;
             if (campaign.distribution_mode === 'school_stage') {
@@ -172,7 +183,18 @@ export default function AdminCampaignView() {
   // Ignore skipped in total active
   const activeAssignments = assignments.filter(a => a.status !== 'skipped');
   const progress = activeAssignments.length > 0 ? (completed / activeAssignments.length) * 100 : 0;
-  const totalAllocated = activeAssignments.length * (campaign.amount_per_family || 0);
+
+  // Dynamic total: use calculateDistribution for auto-calculate campaigns
+  const totalAllocated = useMemo(() => {
+    if (!campaign.is_auto_calculate) {
+      return activeAssignments.length * (campaign.amount_per_family || 0);
+    }
+    return activeAssignments.reduce((sum, a) => {
+      if (!a.family) return sum;
+      const dist = calculateDistribution(a.family as Family, campaign);
+      return sum + dist.baseAmount;
+    }, 0);
+  }, [activeAssignments, campaign]);
 
   const filtered = assignments.filter(a => 
     a.family?.mother_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -314,7 +336,10 @@ export default function AdminCampaignView() {
                     </td>
                     <td>
                       <div style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1rem' }}>
-                        {campaign.amount_per_family?.toLocaleString()} <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>ج.م</span>
+                        {campaign.is_auto_calculate && a.family
+                          ? calculateDistribution(a.family as Family, campaign).baseAmount.toLocaleString()
+                          : (campaign.amount_per_family || 0).toLocaleString()
+                        } <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>ج.م</span>
                       </div>
                     </td>
                     <td style={{ padding: '1rem 2rem', textAlign: 'left' }}>

@@ -8,7 +8,7 @@ export interface DistributionBreakdown {
   baseAmount: number;
   fee: number;
   total: number;
-  mode: 'age' | 'school_stage';
+  mode: 'age' | 'school_stage' | 'children_count';
   childrenBreakdown: {
     childId: string;
     name: string;
@@ -38,33 +38,58 @@ export function calculateDistribution(
 
   const mode = campaign.distribution_mode || 'age';
 
-  // 2. Calculate per child
   let baseAmount = 0;
-  const childrenBreakdown = (family.children || []).map(child => {
-    const age = getChildAge(child);
-    let amount = 0;
-    
-    if (mode === 'school_stage') {
-      const grade = age ? Math.max(1, Math.min(12, age - 5)) : 1;
-      const match = (campaign.stage_brackets || []).find(b => {
-        if (b.stage) return b.stage === (child.school_stage || detectSchoolStage(age));
-        return grade >= (b.fromGrade || 1) && grade <= (b.toGrade || 12);
-      });
-      amount = match ? match.amount : 0;
-    } else {
-      const match = (campaign.age_brackets || []).find(b => age >= b.from && age <= b.to);
-      amount = match ? match.amount : 0;
-    }
+  let childrenBreakdown: { childId: string; name: string; age: number; amount: number; }[] = [];
 
-    baseAmount += amount;
+  if (mode === 'children_count') {
+    const isOrphansOnly = campaign.targeting_rules?.some(r => r.field === 'is_orphan' && r.value === true) ?? false;
+    const eligibleChildren = (family.children || []).filter(c => !isOrphansOnly || c.is_orphan);
+    const count = eligibleChildren.length;
     
-    return {
-      childId: child.id,
-      name: child.child_name,
-      age,
-      amount
-    };
-  });
+    const match = (campaign.children_brackets || []).find(b => count >= b.fromCount && count <= b.toCount);
+    baseAmount = match ? match.amount : 0;
+
+    // Distribute family amount evenly among eligible children for details visual matching
+    const perChildAmount = count > 0 ? Math.round((baseAmount / count) * 100) / 100 : 0;
+
+    childrenBreakdown = (family.children || []).map(child => {
+      const isEligible = !isOrphansOnly || child.is_orphan;
+      const age = getChildAge(child);
+      return {
+        childId: child.id,
+        name: child.child_name,
+        age,
+        amount: isEligible ? perChildAmount : 0
+      };
+    });
+  } else {
+    // Calculate per child
+    childrenBreakdown = (family.children || []).map(child => {
+      const age = getChildAge(child);
+      let amount = 0;
+      
+      if (mode === 'school_stage') {
+        const grade = age ? Math.max(1, Math.min(12, age - 5)) : 1;
+        const match = (campaign.stage_brackets || []).find(b => {
+          if (b.stage) return b.stage === (child.school_stage || detectSchoolStage(age));
+          return grade >= (b.fromGrade || 1) && grade <= (b.toGrade || 12);
+        });
+        amount = match ? match.amount : 0;
+      } else {
+        const match = (campaign.age_brackets || []).find(b => age >= b.from && age <= b.to);
+        amount = match ? match.amount : 0;
+      }
+
+      baseAmount += amount;
+      
+      return {
+        childId: child.id,
+        name: child.child_name,
+        age,
+        amount
+      };
+    });
+  }
 
   const fee = calculateCommission(baseAmount, campaign.commission_rules);
 
