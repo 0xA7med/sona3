@@ -247,15 +247,22 @@ create table if not exists public.case_assignments (
 -- ================================================================
 create table if not exists public.case_locks (
   family_id uuid references public.families(id) on delete cascade primary key,
+  campaign_id uuid references public.campaigns(id),
   locked_by uuid references public.profiles(id) on delete cascade not null,
-  locked_by_name text, -- اسم المتطوع لإظهاره في التنبيه
-  locked_at timestamptz default now() not null
+  locked_by_name text,
+  locked_at timestamptz default now() not null,
+  expires_at timestamptz default (now() + interval '30 minutes')
 );
 
--- Add locked_by_name if missing
 do $$ begin
+  if not exists (select 1 from information_schema.columns where table_name='case_locks' and column_name='campaign_id') then
+    alter table public.case_locks add column campaign_id uuid references public.campaigns(id);
+  end if;
   if not exists (select 1 from information_schema.columns where table_name='case_locks' and column_name='locked_by_name') then
     alter table public.case_locks add column locked_by_name text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='case_locks' and column_name='expires_at') then
+    alter table public.case_locks add column expires_at timestamptz default (now() + interval '30 minutes');
   end if;
 end $$;
 

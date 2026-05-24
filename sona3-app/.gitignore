@@ -3,9 +3,6 @@
 .env.local
 .env.*.local
 
-# Sensitive data files (contain real names, phones, NIDs)
-data_import.sql
-
 # Logs
 logs
 *.log
@@ -20,18 +17,13 @@ dist
 dist-ssr
 *.local
 
-# OS
-.DS_Store
-Thumbs.db
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea/
+.idea
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-*.swp
-*.swo
