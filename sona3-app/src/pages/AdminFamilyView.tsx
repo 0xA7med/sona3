@@ -5,7 +5,7 @@ import {
   Edit3, History, Users, Activity 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import { 
   SOCIAL_STATUS_LABELS, getPriorityLevel, calcPriorityScore,
   type Family, type CaseHistoryEvent
@@ -21,6 +21,7 @@ export default function AdminFamilyView() {
 
   useEffect(() => {
     if (id) fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function fetchAll() {
@@ -33,7 +34,7 @@ export default function AdminFamilyView() {
       if (fRes.error) throw fRes.error;
       setFamily(fRes.data);
       setHistory(hRes.data || []);
-    } catch (err) {
+    } catch {
       toast('تعذر تحميل بيانات الأسرة', 'error');
       navigate('/admin/families');
     } finally {

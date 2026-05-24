@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, LogIn, HeartHandshake, UserPlus } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 
 export default function Login() {
   const { signIn, signUp } = useAuthStore();
@@ -81,7 +81,7 @@ export default function Login() {
       );
       if (error) {
         toast(error.message.includes('already registered') ? 'البريد مستخدم بالفعل' : 'حدث خطأ في التسجيل', 'error');
-      } else if (!data?.session) {
+      } else if (!(data as { session?: unknown })?.session) {
         toast('تم التسجيل! تحتاج لتأكيد بريدك الإلكتروني لتتمكن من الدخول (أو يمكن للمدير تفعيله لك).', 'info', 6000);
         setIsLogin(true);
       } else {

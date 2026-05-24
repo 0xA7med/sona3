@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Check, X, User, MapPin, Phone, ArrowLeft, Loader2, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import type { DataUpdateRequest, Child } from '../types';
 
 export default function AdminDataUpdates() {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Users, Download, Eye, Edit, ChevronDown, ChevronUp, Baby } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import type { Family, SocialStatus } from '../types';
 import { SOCIAL_STATUS_LABELS, SCHOOL_STAGE_LABELS, getPriorityLevel, calcPriorityScore } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -37,7 +37,9 @@ export default function AdminFamilies() {
   }
 
   useEffect(() => {
-    fetchFamilies();
+    const id = setTimeout(() => fetchFamilies(), 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   useEffect(() => {

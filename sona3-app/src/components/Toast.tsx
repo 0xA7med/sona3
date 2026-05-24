@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { setToastDispatch, clearToastDispatch } from '../lib/toast';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -9,15 +10,6 @@ export interface Toast {
   type: ToastType;
   message: string;
   duration?: number;
-}
-
-// ── Singleton global state ──────────────────────────────────
-let _dispatch: ((t: Toast) => void) | null = null;
-
-export function toast(message: string, type: ToastType = 'success', duration = 3500) {
-  if (_dispatch) {
-    _dispatch({ id: crypto.randomUUID(), type, message, duration });
-  }
 }
 
 const ICONS = {
@@ -61,8 +53,8 @@ export function ToastProvider() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
-    _dispatch = (t) => setToasts((prev) => [...prev.slice(-4), t]);
-    return () => { _dispatch = null; };
+    setToastDispatch((t) => setToasts((prev) => [...prev.slice(-4), t]));
+    return () => { clearToastDispatch(); };
   }, []);
 
   const dismiss = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));

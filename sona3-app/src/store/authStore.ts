@@ -1,17 +1,19 @@
+import type { User } from '@supabase/supabase-js';
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import type { Profile, UserRole } from '../types';
 
 interface AuthStore {
-  user: any | null;
-  profile: any | null;
+  user: User | null;
+  profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
-  signUp: (email: string, password: string, fullName: string, phone?: string, zone?: string) => Promise<{ data: any; error: any }>;
+  signIn: (email: string, password: string) => Promise<{ data: unknown; error: { message: string } | null }>;
+  signUp: (email: string, password: string, fullName: string, phone?: string, zone?: string) => Promise<{ data: unknown; error: { message: string } | null }>;
   signOut: () => Promise<void>;
-  setUser: (user: any) => void;
+  setUser: (user: User | null) => void;
   loadProfile: (userId: string) => Promise<void>;
-  updateRole: (role: string) => Promise<void>;
-  setProfile: (profile: any) => void;
+  updateRole: (role: UserRole) => Promise<void>;
+  setProfile: (profile: Profile | null) => void;
   setLoading: (loading: boolean) => void;
 }
 
@@ -60,14 +62,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         if (!createError && newProfile) {
           set({ profile: newProfile });
         } else {
-          set({ profile: { id: userId, full_name: fullName, role: metaRole, phone, zone } });
+          set({ profile: { id: userId, full_name: fullName, role: metaRole as UserRole, phone, zone, is_active: false, created_at: new Date().toISOString() } });
         }
-      } catch (insertErr) {
-        set({ profile: { id: userId, full_name: fullName, role: metaRole, phone, zone } });
+      } catch {
+        set({ profile: { id: userId, full_name: fullName, role: metaRole as UserRole, phone, zone, is_active: false, created_at: new Date().toISOString() } });
       }
     } catch (err: any) {
       console.error('Critical error in loadProfile:', err.message || err);
-      set({ profile: { id: userId, role: 'volunteer' } });
+      set({ profile: { id: userId, full_name: 'متطوع جديد', role: 'volunteer' as UserRole, is_active: false, created_at: new Date().toISOString() } });
     } finally {
       set({ loading: false });
     }
@@ -125,7 +127,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ user: null, profile: null });
   },
 
-  updateRole: async (role: string) => {
+  updateRole: async (role: UserRole) => {
     const { profile } = get();
     if (!profile) return;
     

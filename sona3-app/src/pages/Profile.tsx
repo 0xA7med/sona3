@@ -7,7 +7,7 @@ import {
   Zap, Star
 } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from '../components/ui/ConfirmModal';
 
@@ -38,6 +38,7 @@ export default function Profile() {
         zone: profile.zone || ''
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   async function fetchStats() {
@@ -97,10 +98,8 @@ export default function Profile() {
     try {
       await loadProfile(profile.id);
       toast('🔄 تم تحديث الهوية من النظام', 'success');
-    } catch (err) {
-      toast('❌ فشل التحديث', 'error');
-    } finally {
-      setLoading(false);
+    } catch {
+      toast('❌ فشل تسجيل الخروج', 'error');
     }
   };
 
@@ -108,8 +107,8 @@ export default function Profile() {
     try {
       await signOut();
       navigate('/login');
-    } catch (err) {
-      toast('❌ فشل تسجيل الخروج', 'error');
+    } catch {
+      toast('🔄 تم تحديث الهوية من النظام', 'success');
     }
   };
 

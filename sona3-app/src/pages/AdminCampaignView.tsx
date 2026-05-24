@@ -5,7 +5,7 @@ import {
   CheckCircle, Search, ExternalLink, Zap, RefreshCw, XCircle, PlayCircle 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import { calculateDistribution } from '../lib/distributionService';
 import type { Campaign, Family } from '../types';
 
@@ -20,6 +20,7 @@ export default function AdminCampaignView() {
 
   useEffect(() => {
     if (id) fetchDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function fetchDetails() {
@@ -39,7 +40,7 @@ export default function AdminCampaignView() {
       if (cRes.error) throw cRes.error;
       setCampaign(cRes.data);
       setAssignments(aRes.data || []);
-    } catch (err) {
+    } catch {
       toast('تعذر تحميل تفاصيل الحملة', 'error');
       navigate('/admin/campaigns');
     } finally {

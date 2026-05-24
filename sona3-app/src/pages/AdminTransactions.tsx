@@ -4,7 +4,7 @@ import {
   MapPin, CheckCircle2, Clock
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import { motion } from 'framer-motion';
 import { calculateDistribution } from '../lib/distributionService';
 import type { Campaign, Family } from '../types';
@@ -47,7 +47,7 @@ export default function AdminTransactions() {
       const { data: campaignsData } = await supabase.from('campaigns').select('id, name');
       setCampaigns(campaignsData || []);
 
-    } catch (err: any) {
+    } catch {
       toast('تعذر تحميل السجل المالي', 'error');
     } finally {
       setLoading(false);

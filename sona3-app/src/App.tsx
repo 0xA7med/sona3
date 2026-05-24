@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase';
 import { useAuthStore } from './store/authStore';
 import { ToastProvider } from './components/Toast';
 import { SyncManager } from './components/SyncManager';
+import { logger } from './lib/errorLogger';
 
 // Navigation
 import Navigation from './components/Navigation';
@@ -126,7 +127,12 @@ function AppContent() {
 }
 
 export default function App() {
-  const { setUser, loadProfile } = useAuthStore();
+  const { user, setUser, loadProfile } = useAuthStore();
+
+  // Sync userId to logger
+  useEffect(() => {
+    logger.setUserId(user?.id || null);
+  }, [user?.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -156,6 +162,7 @@ export default function App() {
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          logger.setUserId(null);
           useAuthStore.setState({ profile: null, loading: false });
         }
       });
@@ -168,7 +175,7 @@ export default function App() {
     // Timeout fallback (shorter now)
     const timeoutId = setTimeout(() => {
       if (mounted && useAuthStore.getState().loading) {
-        console.warn('Auth loading timeout - forcing non-loading state');
+        logger.warn('Auth loading timeout - forcing non-loading state');
         useAuthStore.setState({ loading: false });
       }
     }, 5000);

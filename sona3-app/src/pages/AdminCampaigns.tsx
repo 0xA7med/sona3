@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Calendar, Coins, ShoppingBag, Heart, Target, Info, Trash2, Edit3, Eye, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import type { Campaign, CampaignType } from '../types';
 
 const TYPE_CONFIG: Record<CampaignType, { label: string; icon: any; color: string; bg: string; border: string }> = {

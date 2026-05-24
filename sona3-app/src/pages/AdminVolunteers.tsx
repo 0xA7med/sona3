@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, Phone, Eye, DollarSign } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import type { Profile } from '../types';
 
 export default function AdminVolunteers() {

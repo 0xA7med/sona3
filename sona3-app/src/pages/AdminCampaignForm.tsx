@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, ArrowRight, DollarSign, FileText, Plus, Users, Calculator, GraduationCap, Baby, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import type { Campaign, CampaignType, CampaignStatus, Child } from '../types';
 
 const GRADES = [
@@ -73,6 +73,7 @@ export default function AdminCampaignForm() {
   useEffect(() => {
     fetchMetadata();
     if (isEdit) fetchCampaign();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function fetchMetadata() {
@@ -109,7 +110,7 @@ export default function AdminCampaignForm() {
       if (c.stage_brackets?.length) setStageBrackets(c.stage_brackets);
       if (c.children_brackets?.length) setChildrenBrackets(c.children_brackets);
       if (c.commission_rules?.length) setCommissionRules(c.commission_rules);
-    } catch (err) {
+    } catch {
       toast('تعذر تحميل بيانات الحملة', 'error');
       navigate('/admin/campaigns');
     } finally {

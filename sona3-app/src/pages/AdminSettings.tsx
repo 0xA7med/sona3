@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Save, Bell, Database, Globe } from 'lucide-react';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 
 export default function AdminSettings() {
   const [saving, setSaving] = useState(false);

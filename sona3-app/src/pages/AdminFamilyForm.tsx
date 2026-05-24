@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Save, AlertCircle, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import NIDInput from '../components/NIDInput';
 import { 
   type Family, type Child, type NIDData, type SocialStatus, type SchoolStage,
@@ -54,6 +54,7 @@ export default function AdminFamilyForm() {
 
   useEffect(() => {
     if (isEdit) fetchFamily();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function fetchFamily() {
@@ -82,7 +83,7 @@ export default function AdminFamilyForm() {
       setNotes(f.notes || '');
       setChildren(f.children || []);
       
-    } catch (err) {
+    } catch {
       toast('تعذر تحميل بيانات الأسرة', 'error');
       navigate('/admin/families');
     } finally {
@@ -97,7 +98,7 @@ export default function AdminFamilyForm() {
   const updateChild = (index: number, updates: Partial<Child>) => {
     setChildren(prev => {
       const copy = [...prev];
-      let newChild = { ...copy[index], ...updates };
+      const newChild = { ...copy[index], ...updates };
 
       // Auto-populate from NID if provided
       if (updates.national_id && updates.national_id.length === 14) {

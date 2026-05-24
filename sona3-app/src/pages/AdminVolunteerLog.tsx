@@ -5,7 +5,7 @@ import {
   DollarSign, Activity, Award, Trash2, CheckCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import { HISTORY_ACTION_LABELS } from '../types';
 import type { Profile, Transaction, CaseHistoryEvent } from '../types';
 import ConfirmModal from '../components/ui/ConfirmModal';
@@ -27,6 +27,7 @@ export default function AdminVolunteerLog() {
 
   useEffect(() => {
     if (id) fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function fetchData() {
@@ -110,7 +111,7 @@ export default function AdminVolunteerLog() {
       }
       setIsConfirmOpen(false);
       fetchData();
-    } catch (err) {
+    } catch {
       toast('❌ فشل تغيير الحالة. تأكد من إعداد قاعدة البيانات.', 'error');
     }
   };
@@ -146,7 +147,7 @@ export default function AdminVolunteerLog() {
       setFundAmount(0);
       setIsWalletConfirmOpen(false);
       fetchData(); 
-    } catch (err: any) {
+    } catch {
       toast('❌ فشل العملية المالية', 'error');
     } finally {
       // Done

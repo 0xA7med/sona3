@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, CheckCircle, ArrowLeft, Calendar, Coins, ShoppingBag, Heart, Target, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import FamilyCard from '../components/FamilyCard';
 import FamilyDetail from '../components/FamilyDetail';
 import type { CaseAssignment, CaseLock, AssignmentStatus, Campaign, CampaignType } from '../types';
@@ -219,7 +219,7 @@ export default function VolunteerHome() {
         if (error) throw error;
         toast('✅ تم حجز الحالة لك بنجاح', 'success');
         fetchAssignments(selectedCamp.id);
-      } catch (err) {
+      } catch {
         toast('❌ فشل الحجز، قد تكون محجوزة بالفعل', 'error');
       }
       return;
@@ -265,7 +265,7 @@ export default function VolunteerHome() {
         fetchAssignments(selectedCamp.id);
         setSelectedAsgn(null);
         toast('🔄 تم التراجع وإعادة الحالة لقيد التنفيذ', 'info');
-      } catch (err) {
+      } catch {
         toast('حدث خطأ أثناء التراجع', 'error');
       }
       return;
@@ -302,7 +302,7 @@ export default function VolunteerHome() {
         fetchAssignments(selectedCamp.id);
         setSelectedAsgn(null);
         toast('🔓 تم تحرير الحالة. يمكن لمتطوع آخر محاولة التواصل لاحقاً.', 'info');
-      } catch (err) {
+      } catch {
         toast('حدث خطأ أثناء تحرير الحالة', 'error');
       }
       return;
@@ -364,7 +364,7 @@ export default function VolunteerHome() {
        if (error) throw error;
        toast(`📦 تم حجز ${(data as any)?.reserved || 0} حالات جديدة لك بنجاح`, 'success');
        fetchAssignments(selectedCamp.id);
-    } catch (err) {
+    } catch {
       toast('❌ فشل حجز الدفعة، تأكد من توفر حالات شاغرة', 'error');
     }
   };

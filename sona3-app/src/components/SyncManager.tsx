@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOfflineStore } from '../store/offlineStore';
-import { toast } from './Toast';
+import { toast } from '../lib/toast';
+import { logger } from '../lib/errorLogger';
 
 export function SyncManager() {
   const { syncQueue, removeFromSyncQueue } = useOfflineStore();
   const [isSyncing, setIsSyncing] = useState(false);
+  const isSyncingRef = useRef(isSyncing);
+  // eslint-disable-next-line react-hooks/refs
+  isSyncingRef.current = isSyncing;
 
   async function processSyncQueue() {
-    if (syncQueue.length === 0 || isSyncing) return;
+    if (syncQueue.length === 0 || isSyncingRef.current) return;
     
     setIsSyncing(true);
     toast(`🔄 جاري مزامنة ${syncQueue.length} عملية معلقة...`, 'info');
@@ -27,7 +31,6 @@ export function SyncManager() {
             break;
           }
           case 'LOG_TRANSFER': {
-             // In fact history or transaction record
              const { error } = await supabase
                .from('case_history')
                .insert(action.payload);
@@ -47,8 +50,7 @@ export function SyncManager() {
           removeFromSyncQueue(action.id);
         }
       } catch (err) {
-        console.error('Sync failed for action:', action, err);
-        // We'll retry next time
+        logger.error('Sync failed', { actionType: action.type, actionId: action.id, error: err });
       }
     }
 
@@ -58,19 +60,27 @@ export function SyncManager() {
     }
   }
 
+  const processSyncQueueRef = useRef(processSyncQueue);
+  // eslint-disable-next-line react-hooks/refs
+  processSyncQueueRef.current = processSyncQueue;
+
   useEffect(() => {
     const handleOnline = () => {
-      console.log('App is online. Starting sync...');
-      processSyncQueue();
+      logger.info('App is online. Starting sync...');
+      processSyncQueueRef.current();
     };
     window.addEventListener('online', handleOnline);
-    if (navigator.onLine) processSyncQueue();
+    if (navigator.onLine) {
+      const id = setTimeout(() => processSyncQueueRef.current(), 0);
+      return () => { clearTimeout(id); window.removeEventListener('online', handleOnline); };
+    }
     return () => window.removeEventListener('online', handleOnline);
   }, []);
 
   useEffect(() => {
     if (navigator.onLine && syncQueue.length > 0 && !isSyncing) {
-      processSyncQueue();
+      const id = setTimeout(() => processSyncQueueRef.current(), 0);
+      return () => clearTimeout(id);
     }
   }, [syncQueue.length, isSyncing]);
 

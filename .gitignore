@@ -5,6 +5,7 @@
 
 # Sensitive data files (contain real names, phones, NIDs)
 data_import.sql
+data.txt
 
 # Logs
 logs

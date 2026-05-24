@@ -6,7 +6,7 @@ import {
   Heart, Calendar
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import { calculateDistribution } from '../lib/distributionService';
 import type { Campaign, Family } from '../types';
 
@@ -95,7 +95,7 @@ export default function AdminReports() {
         orphanCount: orphans,
         districtStats
       });
-    } catch (err) {
+    } catch {
       toast('تعذر تحميل الإحصائيات الحقيقية', 'error');
     } finally {
       setLoading(false);

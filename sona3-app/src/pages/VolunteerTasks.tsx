@@ -6,7 +6,7 @@ import {
   Clock, RefreshCw, X 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import { calculateDistribution } from '../lib/distributionService';
 import { lockService } from '../lib/lockService';
 import type { Child, Campaign } from '../types';
@@ -43,6 +43,7 @@ export default function VolunteerTasks() {
       }, 30000); // Pulse every 30s
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 
   async function fetchTasks() {
@@ -170,7 +171,7 @@ export default function VolunteerTasks() {
 
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as any } : t));
       toast('✅ تم تحديث الحالة وتوثيقها', 'success');
-    } catch (err: any) {
+    } catch {
       toast('❌ فشل تحديث الحالة', 'error');
     }
   };

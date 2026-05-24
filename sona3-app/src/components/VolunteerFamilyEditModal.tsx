@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Plus, Trash2, AlertCircle, ChevronDown, User, Users, MapPin, ClipboardList } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
-import { toast } from '../components/Toast';
+import { toast } from '../lib/toast';
 import type { Family, Child, SocialStatus } from '../types';
 
 interface VolunteerFamilyEditModalProps {

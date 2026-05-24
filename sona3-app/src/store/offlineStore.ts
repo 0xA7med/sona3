@@ -36,12 +36,12 @@ interface OfflineState {
 export const useOfflineStore = create<OfflineState>()(
   persist(
     (set) => ({
-      families: [],
-      myAssignments: [],
-      campaigns: [],
-      volunteers: [],
+      families: [] as any[],
+      myAssignments: [] as CaseAssignment[],
+      campaigns: [] as any[],
+      volunteers: [] as any[],
       lastUpdated: null,
-      syncQueue: [],
+      syncQueue: [] as PendingSyncAction[],
 
       setFamilies: (families) => set({ families, lastUpdated: new Date().toISOString() }),
       setMyAssignments: (myAssignments) => set({ myAssignments, lastUpdated: new Date().toISOString() }),
