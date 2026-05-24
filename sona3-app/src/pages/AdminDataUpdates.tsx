@@ -19,12 +19,32 @@ export default function AdminDataUpdates() {
     try {
       const { data, error } = await supabase
         .from('data_update_requests')
-        .select('*, family:families(*, children(*)), volunteer:profiles(*)')
+        .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRequests(data || []);
+      if (!data || data.length === 0) { setRequests([]); return; }
+
+      const familyIds = [...new Set(data.map(r => r.family_id))];
+      const volunteerIds = [...new Set(data.map(r => r.volunteer_id))];
+
+      const [famRes, volRes] = await Promise.all([
+        supabase.from('families').select('*, children(*)').in('id', familyIds),
+        supabase.from('profiles').select('*').in('id', volunteerIds),
+      ]);
+
+      if (famRes.error) throw famRes.error;
+      if (volRes.error) throw volRes.error;
+
+      const familyMap = new Map((famRes.data || []).map(f => [f.id, f]));
+      const volMap = new Map((volRes.data || []).map(p => [p.id, p]));
+
+      setRequests(data.map(r => ({
+        ...r,
+        family: familyMap.get(r.family_id) || null,
+        volunteer: volMap.get(r.volunteer_id) || null,
+      })));
     } catch (err: any) {
       toast(err.message, 'error');
     } finally {
@@ -157,7 +177,7 @@ export default function AdminDataUpdates() {
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>بواسطة المتطوع: {req.volunteer?.full_name}</span>
                   </div>
                 </div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg)', padding: '4px 10px', borderRadius: 'full' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg)', padding: '4px 10px', borderRadius: '999px' }}>
                   📅 {new Date(req.created_at).toLocaleString('ar-EG')}
                 </div>
               </div>
